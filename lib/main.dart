@@ -66,12 +66,10 @@ class _MyHomePageState extends State<MyHomePage> {
         // Implement navigation to View History page
         break;
       case 2:
-        // Navigate to Edit Health Information page
-        Navigator.pushNamed(context, '/editHealthInfo');
-        break;
+      // Navigate to Edit Health Information page
       case 3:
         // Health Condition
-        // Implement navigation to Health Condition page
+        Navigator.pushNamed(context, '/editHealthInfo');
         break;
       case 4:
         // Create Appointment
@@ -154,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.health_and_safety),
-            label: 'Health Condition',
+            label: 'Health Information',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
