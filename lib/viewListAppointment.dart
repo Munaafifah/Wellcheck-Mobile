@@ -170,32 +170,21 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                     Text('Time: ${appointment['time']}'),
                     const SizedBox(height: 10),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment
+                          .end, // Changed to align buttons to the right
                       children: [
-                        ElevatedButton(
+                        IconButton(
                           onPressed: () => _viewAppointmentDetails(appointment),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            minimumSize: const Size(50, 30),
-                          ),
-                          child: const Icon(Icons.remove_red_eye, size: 20),
+                          icon: const Icon(Icons.remove_red_eye),
                         ),
-                        ElevatedButton(
+                        IconButton(
                           onPressed: () => _editAppointment(appointment),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            minimumSize: const Size(50, 30),
-                          ),
-                          child: const Icon(Icons.edit, size: 20),
+                          icon: const Icon(Icons.edit),
                         ),
-                        ElevatedButton(
+                        IconButton(
                           onPressed: () =>
                               _deleteAppointment(appointment['id']),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            minimumSize: const Size(50, 30),
-                          ),
-                          child: const Icon(Icons.delete, size: 20),
+                          icon: const Icon(Icons.delete),
                         ),
                       ],
                     ),
