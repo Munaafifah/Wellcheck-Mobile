@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'prescription.dart'; // For prescription-related functions
 import 'symptom.dart'; // For symptom-related functions
 import 'login_page.dart'; // Import login page
+//import 'appointment_page.dart'; // Import appointment page
+import 'viewListAppointment.dart';
+import 'edit_health_information.dart'; // Import the edit health information page
 
 void main() {
   runApp(const MyApp());
@@ -22,6 +25,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const MyHomePage(), // Dashboard route
+        '/appointment': (context) => AppointmentsPage(), // Appointment route
       },
     );
   }
@@ -45,8 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
       0; // Track the selected index for the bottom navigation bar
 
   void _onItemTapped(int index) {
-    if (index == 4) {
-      // Logout is at index 4
+    if (index == 4) { // Logout is at index 4
       _showLogoutConfirmationDialog(); // Show logout confirmation dialog
     } else {
       setState(() {
@@ -156,7 +159,11 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.health_and_safety),
-            label: 'Health Condition',
+            label: 'Health Information',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Create Appointment', // New item for creating an appointment
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.logout),
