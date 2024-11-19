@@ -23,9 +23,11 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/login', // Set login as the initial route
       routes: {
-        '/login': (context) => const LoginPage(),
+        '/login': (context) => LoginPage(),
         '/dashboard': (context) => const MyHomePage(), // Dashboard route
         '/appointment': (context) => AppointmentsPage(), // Appointment route
+        '/editHealthInfo': (context) =>
+            EditHealthInformationPage(), // New route
       },
     );
   }
@@ -39,53 +41,45 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final String patientName = "John Doe";
+  final String patientName = "Muna Doe";
   final String patientAddress = "123 Health Ave";
   final String patientPhone = "+1 234 567 890";
   final String emergencyContact = "+1 987 654 321";
   final String patientImage = "https://via.placeholder.com/150";
 
-  int _selectedIndex = 0; // Track the selected index for the bottom navigation bar
+  int _selectedIndex =
+      0; // Track the selected index for the bottom navigation bar
 
   void _onItemTapped(int index) {
-    if (index == 4) { // Logout is at index 4
-      _showLogoutConfirmationDialog(); // Show logout confirmation dialog
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // Handle navigation based on the selected index
+    switch (index) {
+      case 0:
+        // Dashboard
+        Navigator.pushNamed(context, '/dashboard');
+        break;
+      case 1:
+        // View History
+        // Implement navigation to View History page
+        break;
+      case 2:
+      // Navigate to Edit Health Information page
+      case 3:
+        // Health Condition
+        Navigator.pushNamed(context, '/editHealthInfo');
+        break;
+      case 4:
+        // Create Appointment
+        Navigator.pushNamed(context, '/appointment');
+        break;
+      case 5:
+        // Logout
+        Navigator.pushNamed(context, '/login');
+        break;
     }
-  }
-
-  void _showLogoutConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close the dialog
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close the dialog
-                _logout(); // Perform logout
-              },
-              child: const Text('Logout'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _logout() {
-    Navigator.pushReplacementNamed(context, '/login'); // Navigate to login page
   }
 
   @override
