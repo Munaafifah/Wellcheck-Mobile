@@ -4,6 +4,7 @@ import 'symptom.dart'; // For symptom-related functions
 import 'login_page.dart'; // Import login page
 //import 'appointment_page.dart'; // Import appointment page
 import 'viewListAppointment.dart';
+import 'edit_health_information.dart'; // Import the edit health information page
 
 void main() {
   runApp(const MyApp());
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const MyHomePage(), // Dashboard route
-        '/appointment': (context) => const AppointmentsPage(), // Appointment route
+        '/appointment': (context) => AppointmentsPage(), // Appointment route
       },
     );
   }
@@ -63,8 +64,8 @@ class _MyHomePageState extends State<MyHomePage> {
         // Implement navigation to View History page
         break;
       case 2:
-        // Edit Profile
-        // Implement navigation to Edit Profile page
+        // Navigate to Edit Health Information page
+        Navigator.pushNamed(context, '/editHealthInfo');
         break;
       case 3:
         // Health Condition
