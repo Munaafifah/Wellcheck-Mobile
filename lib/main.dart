@@ -39,14 +39,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final String patientName = "Muna Doe";
+  final String patientName = "John Doe";
   final String patientAddress = "123 Health Ave";
   final String patientPhone = "+1 234 567 890";
   final String emergencyContact = "+1 987 654 321";
   final String patientImage = "https://via.placeholder.com/150";
 
-  int _selectedIndex =
-      0; // Track the selected index for the bottom navigation bar
+  int _selectedIndex = 0; // Track the selected index for the bottom navigation bar
 
   void _onItemTapped(int index) {
     if (index == 4) { // Logout is at index 4
