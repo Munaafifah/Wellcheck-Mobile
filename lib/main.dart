@@ -22,9 +22,9 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/login', // Set login as the initial route
       routes: {
-        '/login': (context) => LoginPage(),
+        '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const MyHomePage(), // Dashboard route
-        '/appointment': (context) => AppointmentsPage(), // Appointment route
+        '/appointment': (context) => const AppointmentsPage(), // Appointment route
       },
     );
   }

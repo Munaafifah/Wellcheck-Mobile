@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'appointment_page.dart'; // Adjust the import path as needed
 
 class AppointmentsPage extends StatefulWidget {
-  const AppointmentsPage({Key? key}) : super(key: key);
+  const AppointmentsPage({super.key});
 
   @override
   _AppointmentsPageState createState() => _AppointmentsPageState();
@@ -242,9 +243,11 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
   }
 
   void _createNewAppointment() {
-    // Placeholder for creating a new appointment
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create Appointment feature coming soon!')),
-    );
-  }
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const AppointmentPage(),
+    ),
+  );
+}
 }
