@@ -18,11 +18,11 @@ app.get('/prescriptions', async (req, res) => {
     const doctorsCollection = database.collection('doctors');
 
     // Fetch a prescription
-    const prescription = await prescriptionsCollection.findOne({ iddoc: "1" });
+    const prescription = await prescriptionsCollection.findOne({ iddoc: "2" });
     if (!prescription) {
       return res.status(404).json({ error: 'Prescription not found' });
     }
-    const doctor = await doctorsCollection.findOne({ iddoc: "1" });
+    const doctor = await doctorsCollection.findOne({ iddoc: "2" });
     if (!doctor) {
       return res.status(404).json({ error: 'Doctor not found' });
     }
