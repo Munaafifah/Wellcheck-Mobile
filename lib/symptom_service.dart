@@ -27,4 +27,43 @@ class SymptomService {
       return false;
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getSymptoms() async {
+    try {
+      final response = await http.get(Uri.parse(_apiUrl));
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(json.decode(response.body));
+      } else {
+        print('Failed to fetch symptoms: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching symptoms: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> deleteSymptom(String id) async {
+    try {
+      final response = await http.delete(Uri.parse('$_apiUrl/$id'));
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error deleting symptom: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> editSymptom(String id, String newDescription) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$_apiUrl/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'description': newDescription}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error editing symptom: $e');
+      return false;
+    }
+  }
 }

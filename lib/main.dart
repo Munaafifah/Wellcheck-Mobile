@@ -4,6 +4,7 @@ import 'symptom.dart'; // For symptom-related functions
 import 'login_page.dart'; // Import login page
 import 'viewListAppointment.dart';
 import 'edit_health_information.dart'; // Import the edit health information page
+import 'symptom_list.dart'; // Import the symptom list page
 
 void main() {
   runApp(const MyApp());
@@ -24,9 +25,11 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const MyHomePage(), // Dashboard route
-        '/appointment': (context) => const AppointmentsPage(), // Appointment route
+        '/appointment': (context) =>
+            const AppointmentsPage(), // Appointment route
         '/editHealthInfo': (context) =>
             const EditHealthInformationPage(), // New route
+        '/symptomlist': (context) => SymptomListPage(), // Fixed constructor
       },
     );
   }
@@ -46,10 +49,12 @@ class _MyHomePageState extends State<MyHomePage> {
   final String emergencyContact = "+1 987 654 321";
   final String patientImage = "https://via.placeholder.com/150";
 
-  int _selectedIndex = 0; // Track the selected index for the bottom navigation bar
+  int _selectedIndex =
+      0; // Track the selected index for the bottom navigation bar
 
   void _onItemTapped(int index) {
-    if (index == 5) { // Logout is at index 5
+    if (index == 5) {
+      // Logout is at index 5
       _showLogoutConfirmationDialog(); // Show logout confirmation dialog
     } else {
       setState(() {
@@ -59,24 +64,19 @@ class _MyHomePageState extends State<MyHomePage> {
       // Handle navigation based on the selected index
       switch (index) {
         case 0:
-          // Dashboard
-          Navigator.pushNamed(context, '/dashboard');
+          Navigator.pushNamed(context, '/dashboard'); // Dashboard
           break;
         case 1:
-          // View History
-          // Implement navigation to View History page
+          // View History (to be implemented)
           break;
         case 2:
-          // Edit Profile
-          // Navigate to Edit Profile page
+          // Edit Profile (to be implemented)
           break;
         case 3:
-          // Health Information
-          Navigator.pushNamed(context, '/editHealthInfo');
+          Navigator.pushNamed(context, '/symptomlist'); // Fixed route
           break;
         case 4:
-          // Create Appointment
-          Navigator.pushNamed(context, '/appointment');
+          Navigator.pushNamed(context, '/appointment'); // Create Appointment
           break;
       }
     }
@@ -128,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
             children: [
               CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage(patientImage), // Display patient image
+                backgroundImage: NetworkImage(patientImage), // Patient image
               ),
               const SizedBox(height: 10),
               Text(patientName,
@@ -140,17 +140,17 @@ class _MyHomePageState extends State<MyHomePage> {
               const SizedBox(height: 20), // Space between details and buttons
               ElevatedButton(
                 onPressed: () {
-                  PrescriptionUtils.fetchData(context); // Call the new method
+                  PrescriptionUtils.fetchData(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white, // Button color
                 ),
                 child: const Text('View Prescription Details'),
               ),
-              const SizedBox(height: 20), // Space between buttons
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  SymptomUtils.showSymptomDialog(context); // Call the new method
+                  SymptomUtils.showSymptomDialog(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white, // Button color
@@ -163,7 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF4CAF93),
-        selectedItemColor: const Color(0xFF2E7D32), // Change the selected item color
+        selectedItemColor: const Color(0xFF2E7D32),
         unselectedItemColor: const Color.fromARGB(255, 164, 219, 157),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -184,7 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
-            label: 'Create Appointment', // New item for creating an appointment
+            label: 'Create Appointment',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.logout),
