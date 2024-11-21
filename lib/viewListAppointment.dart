@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'appointment_page.dart'; // Adjust the import path as needed
 
 class AppointmentsPage extends StatefulWidget {
-  const AppointmentsPage({super.key});
+  const AppointmentsPage({Key? key}) : super(key: key);
 
   @override
   _AppointmentsPageState createState() => _AppointmentsPageState();
@@ -169,25 +168,22 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                   children: [
                     Text('Date: ${appointment['date']}'),
                     Text('Time: ${appointment['time']}'),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment
-                          .end, // Changed to align buttons to the right
-                      children: [
-                        IconButton(
-                          onPressed: () => _viewAppointmentDetails(appointment),
-                          icon: const Icon(Icons.remove_red_eye),
-                        ),
-                        IconButton(
-                          onPressed: () => _editAppointment(appointment),
-                          icon: const Icon(Icons.edit),
-                        ),
-                        IconButton(
-                          onPressed: () =>
-                              _deleteAppointment(appointment['id']),
-                          icon: const Icon(Icons.delete),
-                        ),
-                      ],
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _viewAppointmentDetails(appointment),
+                      icon: const Icon(Icons.remove_red_eye),
+                    ),
+                    IconButton(
+                      onPressed: () => _editAppointment(appointment),
+                      icon: const Icon(Icons.edit),
+                    ),
+                    IconButton(
+                      onPressed: () => _deleteAppointment(appointment['id']),
+                      icon: const Icon(Icons.delete),
                     ),
                   ],
                 ),
@@ -232,11 +228,9 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
   }
 
   void _createNewAppointment() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => const AppointmentPage(),
-    ),
-  );
-}
+    // Placeholder for creating a new appointment
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Create Appointment feature coming soon!')),
+    );
+  }
 }
