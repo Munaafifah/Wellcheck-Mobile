@@ -129,3 +129,79 @@ app.post('/login', async (req, res) => {
     await client.close();
   }
 });
+
+app.get('/symptoms', async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('test');
+    const symptomsCollection = database.collection('symptoms');
+
+    const symptoms = await symptomsCollection.find().toArray();
+    res.status(200).json(symptoms);
+  } catch (error) {
+    console.error('Error fetching symptoms:', error);
+    res.status(500).json({ error: 'Error fetching symptoms' });
+  } finally {
+    await client.close();
+  }
+});
+
+app.put('/symptoms/:id', async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('test');
+    const symptomsCollection = database.collection('symptoms');
+
+    const { id } = req.params;
+    const { description } = req.body;
+
+    if (!description || description.trim() === '') {
+      return res.status(400).json({ error: 'Description is required' });
+    }
+
+    const result = await symptomsCollection.updateOne(
+      { _id: new MongoClient.ObjectId(id) },
+      { $set: { description } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Symptom not found' });
+    }
+
+    res.status(200).json({ message: 'Symptom updated successfully' });
+  } catch (error) {
+    console.error('Error updating symptom:', error);
+    res.status(500).json({ error: 'Error updating symptom' });
+  } finally {
+    await client.close();
+  }
+});
+
+app.delete('/symptoms/:id', async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('test');
+    const symptomsCollection = database.collection('symptoms');
+
+    const { id } = req.params;
+
+    const result = await symptomsCollection.deleteOne({
+      _id: new MongoClient.ObjectId(id),
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Symptom not found' });
+    }
+
+    res.status(200).json({ message: 'Symptom deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting symptom:', error);
+    res.status(500).json({ error: 'Error deleting symptom' });
+  } finally {
+    await client.close();
+  }
+});
+
+
+
+
