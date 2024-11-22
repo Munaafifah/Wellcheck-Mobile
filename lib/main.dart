@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/dashboard': (context) => const MyHomePage(), // Dashboard route
-        '/appointment': (context) =>
+        '/appointments': (context) =>
             const AppointmentsPage(), // Appointment route
         '/editHealthInfo': (context) =>
             const EditHealthInformationPage(), // New route
@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Navigator.pushNamed(context, '/symptomlist'); // Fixed route
           break;
         case 4:
-          Navigator.pushNamed(context, '/appointment'); // Create Appointment
+          Navigator.pushNamed(context, '/appointments'); // Create Appointment
           break;
       }
     }
