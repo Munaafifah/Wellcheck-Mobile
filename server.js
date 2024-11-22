@@ -78,6 +78,75 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
+//Appointments
+app.post('/appointments', async (req, res) => {
+  try {
+    console.log("Incoming Request Body:", req.body); // Debug request body
+    await client.connect();
+    console.log("Connected to MongoDB for appointments.");
+
+    const database = client.db('test'); // Replace 'test' with your DB name
+    const appointmentsCollection = database.collection('appointments');
+
+    const { appointmentDate, appointmentTime, duration, typeOfSickness, additionalNotes } = req.body;
+
+    // Validate required fields
+    if (!appointmentDate || !appointmentTime || !duration || !typeOfSickness) {
+      console.log("Validation Error: Missing required fields");
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Convert duration to minutes
+    const durationMinutes = parseInt(duration.replace(/[^\d]/g, ''), 10); // Extracts numeric value from duration string
+    if (isNaN(durationMinutes)) {
+      console.log("Validation Error: Invalid duration format");
+      return res.status(400).json({ message: 'Invalid duration format' });
+    }
+
+    // Calculate cost based on duration
+    const appointmentCost = durationMinutes * 1; // RM1 per minute
+
+    // Combine appointmentDate and appointmentTime into a single Date object
+    //const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00Z`);
+
+    // Prepare the new appointment object
+    const newAppointment = {
+      appointmentDate,
+      appointmentTime,
+      duration,
+      typeOfSickness,
+      additionalNotes: additionalNotes || '',
+      //appointmentDateTime, // Full datetime for convenience
+      appointmentCost, // Include calculated cost
+      createdAt: new Date(),
+    };
+
+    console.log("New Appointment Object:", newAppointment); // Debug the object
+
+    // Insert the appointment into the database
+    const result = await appointmentsCollection.insertOne(newAppointment);
+
+    console.log("Insert Result:", result); // Debug insertion result
+
+    // Respond with success
+    res.status(201).json({
+      message: 'Appointment created successfully',
+      appointmentId: result.insertedId,
+      cost: appointmentCost, // Include the calculated cost in the response
+    });
+  } catch (error) {
+    console.error("Error in /appointments endpoint:", error.message);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  } finally {
+    await client.close();
+    console.log("Connection to MongoDB closed.");
+  }
+});
+
+
 // New endpoint to login system
 app.post('/login', async (req, res) => {
   try {
