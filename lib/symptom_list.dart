@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'symptom_service.dart';
 
 class SymptomListPage extends StatefulWidget {
+  const SymptomListPage({super.key});
+
   @override
   _SymptomListPageState createState() => _SymptomListPageState();
 }
@@ -45,10 +47,10 @@ class _SymptomListPageState extends State<SymptomListPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Symptom'),
+          title: const Text('Edit Symptom'),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(hintText: 'Enter new description'),
+            decoration: const InputDecoration(hintText: 'Enter new description'),
           ),
           actions: [
             TextButton(
@@ -56,13 +58,13 @@ class _SymptomListPageState extends State<SymptomListPage> {
                 Navigator.of(context).pop();
                 _editSymptom(id, controller.text);
               },
-              child: Text('Save'),
+              child: const Text('Save'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -74,7 +76,7 @@ class _SymptomListPageState extends State<SymptomListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Your Symptoms'),
+        title: const Text('Your Symptoms'),
       ),
       body: ListView.builder(
         itemCount: _symptoms.length,
@@ -88,12 +90,12 @@ class _SymptomListPageState extends State<SymptomListPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: Icon(Icons.edit),
+                  icon: const Icon(Icons.edit),
                   onPressed: () =>
                       _showEditDialog(symptom['_id'], symptom['description']),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete),
+                  icon: const Icon(Icons.delete),
                   onPressed: () => _deleteSymptom(symptom['_id']),
                 ),
               ],

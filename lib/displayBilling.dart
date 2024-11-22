@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class BillingPage extends StatelessWidget {
   final Map<String, dynamic> appointment;
 
-  const BillingPage({Key? key, required this.appointment}) : super(key: key);
+  const BillingPage({super.key, required this.appointment});
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +31,9 @@ class BillingPage extends StatelessWidget {
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Medications:',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             ...medications.map((medication) {
               return ListTile(
@@ -43,7 +43,7 @@ class BillingPage extends StatelessWidget {
                   style: const TextStyle(fontSize: 16),
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 16),
             Text(
               'Total: \$${totalCost.toStringAsFixed(2)}',
