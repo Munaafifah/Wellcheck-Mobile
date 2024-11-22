@@ -43,7 +43,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final String patientName = "Muna Doe";
+  final String patientName = "Muna Af";
   final String patientAddress = "123 Health Ave";
   final String patientPhone = "+1 234 567 890";
   final String emergencyContact = "+1 987 654 321";
