@@ -79,6 +79,38 @@ app.listen(PORT, () => {
 });
 
 //Appointments
+// Endpoint to fetch appointments
+app.get('/appointments', async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('test');
+    const appointmentsCollection = database.collection('appointments');
+
+    // Fetch all appointments from the database
+    const appointments = await appointmentsCollection.find().toArray();
+    if (appointments.length === 0) {
+      return res.status(404).json({ error: 'No appointments found' });
+    }
+
+    // Map the appointments data to the desired response format
+    const response = appointments.map(appointment => ({
+      appointmentDateTime: new Date(`${appointment.appointmentDate}T${appointment.appointmentTime}:00Z`), // Combine date and time
+      duration: appointment.duration,
+      typeOfSickness: appointment.typeOfSickness,
+      additionalNotes: appointment.additionalNotes,
+      createdAt: appointment.createdAt
+    }));
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    res.status(500).json({ error: 'Error fetching appointments' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Endpoint for adding a new appointment
 app.post('/appointments', async (req, res) => {
   try {
     console.log("Incoming Request Body:", req.body); // Debug request body
@@ -107,18 +139,18 @@ app.post('/appointments', async (req, res) => {
     const appointmentCost = durationMinutes * 1; // RM1 per minute
 
     // Combine appointmentDate and appointmentTime into a single Date object
-    //const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00Z`);
+    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00Z`);
 
     // Prepare the new appointment object
     const newAppointment = {
-      appointmentDate,
-      appointmentTime,
-      duration,
-      typeOfSickness,
-      additionalNotes: additionalNotes || '',
-      //appointmentDateTime, // Full datetime for convenience
-      appointmentCost, // Include calculated cost
-      createdAt: new Date(),
+      appointmentDate,             // Appointment date
+      appointmentTime,             // Appointment time
+      duration,                   // Appointment duration
+      typeOfSickness,             // Type of sickness
+      additionalNotes: additionalNotes || '', // Additional notes (optional)
+      appointmentDateTime,        // Full datetime for convenience
+      appointmentCost,            // Include calculated cost
+      createdAt: new Date(),      // Timestamp for when the appointment was created
     };
 
     console.log("New Appointment Object:", newAppointment); // Debug the object
@@ -143,6 +175,64 @@ app.post('/appointments', async (req, res) => {
   } finally {
     await client.close();
     console.log("Connection to MongoDB closed.");
+  }
+});
+
+// Endpoint to update symptoms
+app.put('/symptoms/:id', async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('test');
+    const symptomsCollection = database.collection('symptoms');
+
+    const { id } = req.params;
+    const { description } = req.body;
+
+    if (!description || description.trim() === '') {
+      return res.status(400).json({ error: 'Description is required' });
+    }
+
+    const result = await symptomsCollection.updateOne(
+      { _id: new MongoClient.ObjectId(id) },
+      { $set: { description } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Symptom not found' });
+    }
+
+    res.status(200).json({ message: 'Symptom updated successfully' });
+  } catch (error) {
+    console.error('Error updating symptom:', error);
+    res.status(500).json({ error: 'Error updating symptom' });
+  } finally {
+    await client.close();
+  }
+});
+
+// Endpoint to delete symptoms
+app.delete('/symptoms/:id', async (req, res) => {
+  try {
+    await client.connect();
+    const database = client.db('test');
+    const symptomsCollection = database.collection('symptoms');
+
+    const { id } = req.params;
+
+    const result = await symptomsCollection.deleteOne({
+      _id: new MongoClient.ObjectId(id),
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Symptom not found' });
+    }
+
+    res.status(200).json({ message: 'Symptom deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting symptom:', error);
+    res.status(500).json({ error: 'Error deleting symptom' });
+  } finally {
+    await client.close();
   }
 });
 

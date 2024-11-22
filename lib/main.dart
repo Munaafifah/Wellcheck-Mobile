@@ -29,7 +29,8 @@ class MyApp extends StatelessWidget {
             const AppointmentsPage(), // Appointment route
         '/editHealthInfo': (context) =>
             const EditHealthInformationPage(), // New route
-        '/symptomlist': (context) => SymptomListPage(), // Fixed constructor
+        '/symptomlist': (context) =>
+            const SymptomListPage(), // Fixed constructor
       },
     );
   }
@@ -43,7 +44,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final String patientName = "Muna Afifah";
+  final String patientName = "Duna Afifah";
   final String patientAddress = "123 Health Ave";
   final String patientPhone = "+1 234 567 890";
   final String emergencyContact = "+1 987 654 321";

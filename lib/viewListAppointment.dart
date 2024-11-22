@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import 'appointment_page.dart';
+import 'viewListAppointment_service.dart'; // Import the AppointmentService class
 
 class AppointmentsPage extends StatefulWidget {
   const AppointmentsPage({super.key});
@@ -9,33 +11,36 @@ class AppointmentsPage extends StatefulWidget {
 }
 
 class _AppointmentsPageState extends State<AppointmentsPage> {
-  List<Map<String, dynamic>> appointments = [
-    {
-      'id': '1',
-      'date': '2024-02-15',
-      'time': '10:00 AM',
-      'doctor': 'Dr. Smith',
-      'specialty': 'Cardiology',
-      'status': 'Confirmed'
-    },
-    {
-      'id': '2',
-      'date': '2024-03-20',
-      'time': '2:30 PM',
-      'doctor': 'Johnson',
-      'specialty': 'Orthopedics',
-      'status': 'Pending'
-    },
-    {
-      'id': '3',
-      'date': '2024-04-05',
-      'time': '11:15 AM',
-      'doctor': 'Dr. Williams',
-      'specialty': 'Neurology',
-      'status': 'Scheduled'
-    },
-  ];
+  List<Map<String, dynamic>> appointments = [];
+  late AppointmentService
+      _appointmentService; // Declare AppointmentService instance
 
+  @override
+  void initState() {
+    super.initState();
+    _appointmentService = AppointmentService(); // Initialize AppointmentService
+    _connectToDatabase();
+  }
+
+  // Connect to database and fetch appointments
+  Future<void> _connectToDatabase() async {
+    await _appointmentService.connect();
+    _fetchAppointments();
+  }
+
+  // Fetch all appointments
+  Future<void> _fetchAppointments() async {
+    try {
+      final fetchedAppointments = await _appointmentService.fetchAppointments();
+      setState(() {
+        appointments = fetchedAppointments;
+      });
+    } catch (e) {
+      print("Failed to fetch appointments: $e");
+    }
+  }
+
+  // Delete an appointment by ID
   void _deleteAppointment(String id) {
     showDialog(
       context: context,
@@ -50,16 +55,24 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  appointments
-                      .removeWhere((appointment) => appointment['id'] == id);
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Appointment deleted successfully')),
-                );
+              onPressed: () async {
+                try {
+                  await _appointmentService.deleteAppointment(id);
+                  setState(() {
+                    appointments
+                        .removeWhere((appointment) => appointment['id'] == id);
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Appointment deleted successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Failed to delete appointment')),
+                  );
+                }
               },
               child: const Text('Delete'),
             ),
@@ -69,13 +82,18 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
     );
   }
 
+  // Edit an appointment
   void _editAppointment(Map<String, dynamic> appointment) {
-    // Create controllers for each field
-    final dateController = TextEditingController(text: appointment['date']);
-    final timeController = TextEditingController(text: appointment['time']);
-    final doctorController = TextEditingController(text: appointment['doctor']);
-    final specialtyController =
-        TextEditingController(text: appointment['specialty']);
+    final dateController =
+        TextEditingController(text: appointment['appointmentDate']);
+    final timeController =
+        TextEditingController(text: appointment['appointmentTime']);
+    final durationController =
+        TextEditingController(text: appointment['duration']);
+    final sicknessController =
+        TextEditingController(text: appointment['typeOfSickness']);
+    final notesController =
+        TextEditingController(text: appointment['additionalNotes']);
 
     showDialog(
       context: context,
@@ -87,49 +105,58 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: dateController,
-                  decoration: const InputDecoration(labelText: 'Date'),
-                ),
+                    controller: dateController,
+                    decoration:
+                        const InputDecoration(labelText: 'Appointment Date')),
                 TextField(
-                  controller: timeController,
-                  decoration: const InputDecoration(labelText: 'Time'),
-                ),
+                    controller: timeController,
+                    decoration:
+                        const InputDecoration(labelText: 'Appointment Time')),
                 TextField(
-                  controller: doctorController,
-                  decoration: const InputDecoration(labelText: 'Doctor'),
-                ),
+                    controller: durationController,
+                    decoration: const InputDecoration(labelText: 'Duration')),
                 TextField(
-                  controller: specialtyController,
-                  decoration: const InputDecoration(labelText: 'Specialty'),
-                ),
+                    controller: sicknessController,
+                    decoration:
+                        const InputDecoration(labelText: 'Type of Sickness')),
+                TextField(
+                    controller: notesController,
+                    decoration:
+                        const InputDecoration(labelText: 'Additional Notes')),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel')),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  final index = appointments
-                      .indexWhere((a) => a['id'] == appointment['id']);
-                  if (index != -1) {
-                    appointments[index] = {
-                      ...appointment,
-                      'date': dateController.text,
-                      'time': timeController.text,
-                      'doctor': doctorController.text,
-                      'specialty': specialtyController.text,
-                    };
-                  }
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Appointment updated successfully')),
-                );
+              onPressed: () async {
+                final updatedAppointment = {
+                  'appointmentDate': dateController.text,
+                  'appointmentTime': timeController.text,
+                  'duration': durationController.text,
+                  'typeOfSickness': sicknessController.text,
+                  'additionalNotes': notesController.text,
+                  'appointmentDateTime':
+                      '${dateController.text} ${timeController.text}',
+                };
+
+                try {
+                  await _appointmentService.editAppointment(
+                      appointment['id'], updatedAppointment);
+                  _fetchAppointments(); // Refresh the appointments list
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Appointment updated successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Failed to update appointment')),
+                  );
+                }
               },
               child: const Text('Save'),
             ),
@@ -137,6 +164,52 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
         );
       },
     );
+  }
+
+  // View appointment details
+  void _viewAppointmentDetails(Map<String, dynamic> appointment) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Appointment Details'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Date: ${appointment['appointmentDate']}'),
+              Text('Time: ${appointment['appointmentTime']}'),
+              Text('Duration: ${appointment['duration']}'),
+              Text('Type of Sickness: ${appointment['typeOfSickness']}'),
+              Text('Additional Notes: ${appointment['additionalNotes']}'),
+              Text(
+                  'Appointment DateTime: ${appointment['appointmentDateTime']}'),
+              Text('Created At: ${appointment['createdAt']}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Create a new appointment
+  void _createNewAppointment() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AppointmentPage()),
+    );
+  }
+
+  @override
+  void dispose() {
+    _appointmentService.disconnect();
+    super.dispose();
   }
 
   @override
@@ -158,17 +231,15 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
               margin: const EdgeInsets.symmetric(vertical: 8),
               child: ListTile(
                 title: Text(
-                  '${appointment['doctor']} - ${appointment['specialty']}',
+                  '${appointment['appointmentDate']} - ${appointment['typeOfSickness']}',
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                      fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Date: ${appointment['date']}'),
-                    Text('Time: ${appointment['time']}'),
+                    Text('Time: ${appointment['appointmentTime']}'),
+                    Text('Duration: ${appointment['duration']}'),
                   ],
                 ),
                 trailing: Row(
@@ -200,39 +271,4 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
       ),
     );
   }
-
-  void _viewAppointmentDetails(Map<String, dynamic> appointment) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Appointment Details: ${appointment['doctor']}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Doctor: ${appointment['doctor']}'),
-              Text('Specialty: ${appointment['specialty']}'),
-              Text('Date: ${appointment['date']}'),
-              Text('Time: ${appointment['time']}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _createNewAppointment() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const AppointmentPage()),
-  );
-}
-
 }
