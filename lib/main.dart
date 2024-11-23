@@ -141,13 +141,16 @@ class _MyHomePageState extends State<MyHomePage> {
               const SizedBox(height: 20), // Space between details and buttons
               ElevatedButton(
                 onPressed: () {
-                  PrescriptionUtils.fetchData(context);
+                  const String patientId =
+                      "000"; // Replace with actual patient ID
+                  PrescriptionUtils.fetchData(context, patientId);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white, // Button color
                 ),
                 child: const Text('View Prescription Details'),
               ),
+
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {

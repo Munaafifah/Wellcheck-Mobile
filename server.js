@@ -2,6 +2,8 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
 require('dotenv').config();
+const mongoose = require("mongoose");
+
 
 const app = express();
 app.use(cors());
@@ -10,43 +12,94 @@ app.use(express.json()); // Middleware to parse JSON bodies
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
-app.get('/prescriptions', async (req, res) => {
+// Define Patient schema
+const PatientSchema = new mongoose.Schema({
+  _id: String,
+  name: String,
+  address: String,
+  contact: String,
+  emergencyContact: String,
+  assigned_doctor: String,
+  sensorDataId: String,
+  status: String,
+  prescriptions: [
+    {
+      prescriptionId: String,
+      diagnosisAilmentDescription: String,
+      prescriptionDescription: String,
+      doctorId: String,
+      timestamp: String,
+      medicineList: [
+        {
+          name: String,
+          dosage: String,
+        },
+      ],
+    },
+  ],
+  healthStatus: [
+    {
+      healthStatusId: String,
+      doctorId: String,
+      additionalNotes: String,
+      timestamp: String,
+    },
+  ],
+});
+
+// Create Patient model
+const Patient = mongoose.model("Patient", PatientSchema);
+
+// Endpoint to get a patient by ID
+app.get("/patients/:id", async (req, res) => {
+  const patientId = req.params._id; // Correct the parameter to use 'id'
+  const dbName = "test2"; // Specify the database name
+  const collectionName = "users"; // Specify the collection name
+
   try {
-    await client.connect();
-    const database = client.db('test');
-    const prescriptionsCollection = database.collection('prescriptions');
-    const doctorsCollection = database.collection('doctors');
+    const client = new MongoClient(uri);
+    await client.connect(); // Connect to MongoDB
+    const database = client.db(test2); // Use the 'wellcheck' database
+    const collection = database.collection(users); // Access 'patients' collection
 
-    // Fetch a prescription
-    const prescription = await prescriptionsCollection.findOne({ iddoc: "2" });
-    if (!prescription) {
-      return res.status(404).json({ error: 'Prescription not found' });
-    }
-    const doctor = await doctorsCollection.findOne({ iddoc: "2" });
-    if (!doctor) {
-      return res.status(404).json({ error: 'Doctor not found' });
+    const patient = await collection.findOne({ _id: patientId }); // Query by patient ID
+
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
     }
 
-    // Combine data from both collections
-    const response = {
-      doctorName: doctor.doctorName ,
-      doctorSpecialty: doctor ? doctor.doctorSpecialty : 'Unknown',
-      patientName: prescription.patientName,
-      medicationsList: prescription.medicationsList,
-      diagnosis: prescription.diagnosis,
-      notes: prescription.notes,
-      time: prescription.time,
-      iddoc: prescription.iddoc,
-    };
-
-    res.json(response);
+    res.json(patient); // Return the patient data
   } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).json({ error: 'Error fetching data' });
-  } finally {
-    await client.close();
+    console.error("Error fetching patient:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
+
+// Endpoint to get all prescriptions for a specific patient
+app.get("/patients/:id/prescriptions", async (req, res) => {
+  const patientId = req.params.id; // Correct the parameter to use 'id'
+  const dbName = "test2"; // Specify the database name
+  const collectionName = "patients"; // Specify the collection name
+
+  try {
+    const client = new MongoClient(uri);
+    await client.connect(); // Connect to MongoDB
+    const database = client.db(test2); // Use the 'wellcheck' database
+    const collection = database.collection(patients); // Access 'patients' collection
+
+    const patient = await collection.findOne({ _id: patientId }, { projection: { prescriptions: 1 } }); // Fetch prescriptions only
+
+    if (!patient || !patient.prescriptions) {
+      return res.status(404).json({ message: "Prescriptions not found for this patient" });
+    }
+
+    res.json(patient.prescriptions); // Return the prescriptions
+  } catch (error) {
+    console.error("Error fetching prescriptions:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 // New endpoint to handle symptom submissions
 app.post('/symptoms', async (req, res) => {
@@ -241,44 +294,45 @@ app.delete('/symptoms/:id', async (req, res) => {
 app.post('/login', async (req, res) => {
   try {
     await client.connect();
-    const database = client.db('test');
+    const database = client.db('test2'); // Use the correct database name as shown in the image
     const usersCollection = database.collection('users');
 
-    const { username, password } = req.body;
+    const { userId, password } = req.body; // Adjust field names to match the new structure
 
-    if (!username || !password) {
-      return res.status(400).json({ 
-        error: 'Username and password are required' 
+    if (!userId || !password) {
+      return res.status(400).json({
+        error: 'User ID and password are required',
       });
     }
 
     // Find the user in the database
-    const user = await usersCollection.findOne({ 
-      username, 
-      password  // Note: In production, use proper password hashing
+    const user = await usersCollection.findOne({
+      userId,
+      password, // Note: In production, use proper password hashing
     });
 
     if (!user) {
-      return res.status(401).json({ 
-        error: 'Invalid username or password' 
+      return res.status(401).json({
+        error: 'Invalid user ID or password',
       });
     }
 
     // Check if user is a patient (trim to handle extra spaces)
     if (user.role.trim().toLowerCase() !== 'patient') {
-      return res.status(403).json({ 
-        error: 'Access denied: Only patients can login through this portal' 
+      return res.status(403).json({
+        error: 'Access denied: Only patients can login through this portal',
       });
     }
 
     // Success: Return user details
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Login successful',
       user: {
-        username: user.username,
-        name: user.name || user.username,
-        role: user.role.trim()
-      }
+        userId: user.userId,
+        name: user.name,
+        contact: user.contact, // Include contact if needed
+        role: user.role.trim(),
+      },
     });
 
   } catch (error) {
@@ -288,6 +342,7 @@ app.post('/login', async (req, res) => {
     await client.close();
   }
 });
+
 
 app.get('/symptoms', async (req, res) => {
   try {
