@@ -1,7 +1,5 @@
-import 'package:intl/intl.dart'; // For date formatting
-
 class Appointment {
-  final DateTime appointmentDate; // Changed to DateTime
+  final DateTime appointmentDate;
   final String appointmentTime; // String to represent time in a readable format
   final String duration;
   final String typeOfSickness;
@@ -20,8 +18,7 @@ class Appointment {
   // Convert Appointment object to JSON
   Map<String, dynamic> toJson() {
     return {
-      'appointmentDate': DateFormat('yyyy-MM-dd')
-          .format(appointmentDate), // Format date as string
+      'appointmentDate': appointmentDate.toIso8601String().split('T')[0], // Only the date
       'appointmentTime': appointmentTime, // Time as a string (e.g., "14:30")
       'duration': duration,
       'typeOfSickness': typeOfSickness,
@@ -33,21 +30,18 @@ class Appointment {
   // Create Appointment object from JSON
   factory Appointment.fromJson(Map<String, dynamic> json) {
     return Appointment(
-      appointmentDate: json['appointmentDate'] != null
-          ? DateTime.tryParse(json['appointmentDate']) ?? DateTime.now()
-          : DateTime.now(),
-      appointmentTime: json['appointmentTime'] ?? 'No time provided',
-      typeOfSickness: json['typeOfSickness'] ?? 'Unknown',
-      duration: json['duration'] ?? '0 min',
-      additionalNotes: json['additionalNotes'] ?? 'No additional notes',
-      appointmentCost: (json['appointmentCost'] as num?)?.toDouble() ?? 0.0,
+      appointmentDate: DateTime.parse(json['appointmentDate']),
+      appointmentTime: json['appointmentTime'],
+      duration: json['duration'],
+      typeOfSickness: json['typeOfSickness'],
+      additionalNotes: json['additionalNotes'],
+      appointmentCost: json['appointmentCost'], // Parse appointment cost from JSON
     );
   }
 
   // Method to calculate the cost of the appointment based on duration
   static double calculateCost(String duration) {
-    final durationMinutes =
-        int.tryParse(duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    final durationMinutes = int.tryParse(duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     return durationMinutes * 1.0; // RM1 per minute
   }
 
@@ -68,10 +62,5 @@ class Appointment {
       additionalNotes: additionalNotes,
       appointmentCost: cost,
     );
-  }
-
-  // Method to format the appointment date for display purposes
-  String getFormattedDate() {
-    return DateFormat('yyyy-MM-dd').format(appointmentDate);
   }
 }
