@@ -1,11 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-import 'appointment_page.dart';
-=======
->>>>>>> f01b34d7182743095643ea72b9aa413fac03774b
->>>>>>> Stashed changes
 import 'viewListAppointment_service.dart'; // Import the AppointmentService class
 import 'appointment_model.dart'; // Import the Appointment model class
 
@@ -17,7 +10,8 @@ class AppointmentsPage extends StatefulWidget {
 }
 
 class _AppointmentsPageState extends State<AppointmentsPage> {
-  List<Appointment> appointments = []; // Change to List<Appointment> type
+  List<Appointment> appointments =
+      []; // Keeping List<Appointment> type for consistency
   late AppointmentService _appointmentService;
 
   @override
@@ -82,7 +76,10 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
                 Text(
                     'Time: ${appointment.appointmentTime}'), // Time part from model
                 Text('Duration: ${appointment.duration}'),
+                Text('Duration: ${appointment.typeOfSickness}'),
                 Text('Additional Notes: ${appointment.additionalNotes}'),
+                Text(
+                    'Cost: RM ${appointment.appointmentCost.toStringAsFixed(2)}'), // Showing cost
               ],
             ),
             trailing: Row(
