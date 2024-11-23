@@ -11,18 +11,16 @@ class AppointmentsPage extends StatefulWidget {
 }
 
 class _AppointmentsPageState extends State<AppointmentsPage> {
-  List<Appointment> appointments =
-      []; // Keeping List<Appointment> type for consistency
+  List<Appointment> appointments = [];
   late AppointmentService _appointmentService;
 
   @override
   void initState() {
     super.initState();
-    _appointmentService = AppointmentService(); // Initialize AppointmentService
+    _appointmentService = AppointmentService();
     _fetchAppointments();
   }
 
-  /// Fetch all appointments from the service.
   Future<void> _fetchAppointments() async {
     try {
       final fetchedAppointments = await _appointmentService.fetchAppointments();
@@ -30,12 +28,11 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
         appointments = fetchedAppointments;
       });
     } catch (e) {
-      print("Failed to fetchsS appointments: $e");
+      print("Failed to fetch appointments: $e");
       _showSnackBar("Failed to fetch appointments.");
     }
   }
 
-  /// Show a SnackBar with a custom message.
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -45,7 +42,38 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
     );
   }
 
-  /// Build the appointments list or an empty state message.
+  /// Show a detailed view of the appointment in a dialog.
+  void _showAppointmentDetails(Appointment appointment) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Appointment Details'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Title: Appointment - ${appointment.typeOfSickness}'),
+                Text('Date: ${appointment.appointmentDate}'),
+                Text('Time: ${appointment.appointmentTime}'),
+                Text('Duration: ${appointment.duration}'),
+                Text('Additional Notes: ${appointment.additionalNotes}'),
+                Text(
+                    'Cost: RM ${appointment.appointmentCost.toStringAsFixed(2)}'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildAppointmentsList() {
     if (appointments.isEmpty) {
       return const Center(
@@ -66,40 +94,33 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
             title: Text(
-              '${appointment.appointmentDate} - ${appointment.typeOfSickness}',
+              'Appointment - ${appointment.typeOfSickness}',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                    'Date: ${appointment.appointmentDate}'), // Display date properly
-                Text(
-                    'Time: ${appointment.appointmentTime}'), // Time part from model
+                Text('Date: ${appointment.appointmentDate}'),
+                Text('Time: ${appointment.appointmentTime}'),
                 Text('Duration: ${appointment.duration}'),
-                Text('Duration: ${appointment.typeOfSickness}'),
-                Text('Additional Notes: ${appointment.additionalNotes}'),
-                Text(
-                    'Cost: RM ${appointment.appointmentCost.toStringAsFixed(2)}'), // Showing cost
               ],
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  onPressed: () =>
-                      _showSnackBar('View appointment is disabled.'),
-                  icon: const Icon(Icons.remove_red_eye, color: Colors.grey),
+                  onPressed: () => _showAppointmentDetails(appointment),
+                  icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
                 ),
                 IconButton(
                   onPressed: () =>
                       _showSnackBar('Edit appointment is disabled.'),
-                  icon: const Icon(Icons.edit, color: Colors.grey),
+                  icon: const Icon(Icons.edit, color: Colors.orange),
                 ),
                 IconButton(
                   onPressed: () =>
                       _showSnackBar('Delete appointment is disabled.'),
-                  icon: const Icon(Icons.delete, color: Colors.grey),
+                  icon: const Icon(Icons.delete, color: Colors.red),
                 ),
               ],
             ),

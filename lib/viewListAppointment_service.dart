@@ -16,7 +16,7 @@ class AppointmentService {
         List<dynamic> data = jsonDecode(response.body);
         return data.map((json) => Appointment.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to fetchs appointments: ${response.body}');
+        throw Exception('Failed to fetch appointments: ${response.body}');
       }
     } catch (e) {
       throw Exception('An error occurred while fetching appointments: $e');

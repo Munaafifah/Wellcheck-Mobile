@@ -1,8 +1,8 @@
 import 'package:intl/intl.dart'; // For date formatting
 
 class Appointment {
-  final DateTime appointmentDate; // Changed to DateTime
-  final String appointmentTime; // String to represent time in a readable format
+  final DateTime appointmentDate; // Store only the date part
+  final String appointmentTime; // Time as a string (e.g., "14:30")
   final String duration;
   final String typeOfSickness;
   final String additionalNotes;
@@ -73,5 +73,10 @@ class Appointment {
   // Method to format the appointment date for display purposes
   String getFormattedDate() {
     return DateFormat('yyyy-MM-dd').format(appointmentDate);
+  }
+
+  // Method to format the appointment time for display purposes
+  String getFormattedTime() {
+    return appointmentTime; // Return time directly as a string
   }
 }
