@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'viewListAppointment_service.dart'; // Import the AppointmentService class
 import 'appointment_model.dart'; // Import the Appointment model class
-
+import 'appointment_page.dart';
 class AppointmentsPage extends StatefulWidget {
   const AppointmentsPage({super.key});
 
@@ -109,24 +109,27 @@ class _AppointmentsPageState extends State<AppointmentsPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Appointments'),
-        backgroundColor: const Color(0xFF4CAF93),
-      ),
-      body: Container(
-        color: Colors.grey[200],
-        child: _buildAppointmentsList(),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Future implementation for creating a new appointment.
-          _showSnackBar('Create new appointment functionality coming soon.');
-        },
-        backgroundColor: const Color(0xFF4CAF93),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: const Text('My Appointments'),
+      backgroundColor: const Color(0xFF4CAF93),
+    ),
+    body: Container(
+      color: Colors.grey[200],
+      child: _buildAppointmentsList(),
+    ),
+    floatingActionButton: FloatingActionButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AppointmentPage()),
+        );
+      },
+      backgroundColor: const Color(0xFF4CAF93),
+      child: const Icon(Icons.add),
+    ),
+  );
+}
+
 }
