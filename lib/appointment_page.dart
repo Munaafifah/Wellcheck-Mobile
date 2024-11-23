@@ -20,7 +20,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
   String _additionalNotes = '';
   double _calculatedCost = 0.0;
 
-  // Function to calculate cost based on duration
   void _calculateCost(String? duration) {
     if (duration != null) {
       final durationMinutes =
@@ -39,11 +38,10 @@ class _AppointmentPageState extends State<AppointmentPage> {
     if (_formKey.currentState?.validate() ?? false) {
       _formKey.currentState?.save();
 
-      // Prepare the `Appointment` object
       final appointment = Appointment(
-        appointmentDate: _selectedDate!, // Date only
+        appointmentDate: _selectedDate!,
         appointmentTime:
-            '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}', // Time formatted as HH:mm
+            '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
         duration: _selectedDuration!,
         typeOfSickness: _selectedSicknessType!,
         additionalNotes: _additionalNotes,
@@ -51,7 +49,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
       );
 
       try {
-        // Call service to create an appointment
         await _service.createAppointment(appointment);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment booked successfully!')),
@@ -66,136 +63,207 @@ class _AppointmentPageState extends State<AppointmentPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Book Appointment')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              // Appointment Date Field
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Appointment Date'),
-                readOnly: true,
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2100),
-                  );
-                  setState(() {
-                    _selectedDate = date;
-                  });
-                },
-                validator: (value) =>
-                    _selectedDate == null ? 'Please select a date' : null,
-                controller: TextEditingController(
-                  text: _selectedDate != null
-                      ? '${_selectedDate!.toLocal()}'.split(' ')[0]
-                      : '',
+      appBar: AppBar(
+        title: const Text('Book Appointment'),
+        backgroundColor: const Color(0xFF4CAF93),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Card(
+            elevation: 6,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Book Your Appointment',
+                      style: theme.textTheme.titleLarge!
+                          .copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const Divider(height: 20, thickness: 1.5),
+                    const SizedBox(height: 16),
+
+                    // Appointment Date Field
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Appointment Date',
+                        prefixIcon: const Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      readOnly: true,
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2100),
+                        );
+                        setState(() {
+                          _selectedDate = date;
+                        });
+                      },
+                      validator: (value) =>
+                          _selectedDate == null ? 'Please select a date' : null,
+                      controller: TextEditingController(
+                        text: _selectedDate != null
+                            ? '${_selectedDate!.toLocal()}'.split(' ')[0]
+                            : '',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Appointment Time Field
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Appointment Time',
+                        prefixIcon: const Icon(Icons.access_time),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      readOnly: true,
+                      onTap: () async {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        setState(() {
+                          _selectedTime = time;
+                        });
+                      },
+                      validator: (value) =>
+                          _selectedTime == null ? 'Please select a time' : null,
+                      controller: TextEditingController(
+                        text: _selectedTime != null
+                            ? _selectedTime!.format(context)
+                            : '',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Appointment Duration Dropdown
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Appointment Duration',
+                        prefixIcon: const Icon(Icons.timer),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      items: [
+                        '15 minutes',
+                        '30 minutes',
+                        '45 minutes',
+                        '60 minutes',
+                        '90 minutes',
+                      ]
+                          .map((duration) => DropdownMenuItem(
+                                value: duration,
+                                child: Text(duration),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        _selectedDuration = value;
+                        _calculateCost(value);
+                      },
+                      validator: (value) =>
+                          value == null ? 'Please select a duration' : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Type of Sickness Dropdown
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: 'Type of Sickness',
+                        prefixIcon: const Icon(Icons.healing),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      items: [
+                        'General Checkup',
+                        'Cold/Flu',
+                        'Allergy',
+                        'Injury',
+                        'Skin Issue',
+                        'Mental Health',
+                        'Chronic Pain',
+                        'Other'
+                      ]
+                          .map((type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        _selectedSicknessType = value;
+                      },
+                      validator: (value) => value == null
+                          ? 'Please select a sickness type'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Additional Notes Field
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Additional Notes',
+                        prefixIcon: const Icon(Icons.note_add),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      maxLines: 3,
+                      onSaved: (value) {
+                        _additionalNotes = value ?? '';
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Display Calculated Cost
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Estimated Cost: RM${_calculatedCost.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: const Color(0xFF4CAF93),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Book Appointment',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-
-              // Appointment Time Field
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Appointment Time'),
-                readOnly: true,
-                onTap: () async {
-                  final time = await showTimePicker(
-                    context: context,
-                    initialTime: TimeOfDay.now(),
-                  );
-                  setState(() {
-                    _selectedTime = time;
-                  });
-                },
-                validator: (value) =>
-                    _selectedTime == null ? 'Please select a time' : null,
-                controller: TextEditingController(
-                  text: _selectedTime != null
-                      ? _selectedTime!.format(context)
-                      : '',
-                ),
-              ),
-
-              // Appointment Duration Dropdown
-              DropdownButtonFormField<String>(
-                decoration:
-                    const InputDecoration(labelText: 'Appointment Duration'),
-                items: [
-                  '15 minutes',
-                  '30 minutes',
-                  '45 minutes',
-                  '60 minutes',
-                  '90 minutes',
-                ]
-                    .map((duration) => DropdownMenuItem(
-                          value: duration,
-                          child: Text(duration),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  _selectedDuration = value;
-                  _calculateCost(value); // Calculate cost when duration changes
-                },
-                validator: (value) =>
-                    value == null ? 'Please select a duration' : null,
-              ),
-
-              // Type of Sickness Dropdown
-              DropdownButtonFormField<String>(
-                decoration:
-                    const InputDecoration(labelText: 'Type of Sickness'),
-                items: [
-                  'General Checkup',
-                  'Cold/Flu',
-                  'Allergy',
-                  'Injury',
-                  'Skin Issue',
-                  'Mental Health',
-                  'Chronic Pain',
-                  'Other'
-                ]
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  _selectedSicknessType = value;
-                },
-                validator: (value) =>
-                    value == null ? 'Please select a sickness type' : null,
-              ),
-
-              // Additional Notes Field
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Additional Notes'),
-                maxLines: 3,
-                onSaved: (value) {
-                  _additionalNotes = value ?? '';
-                },
-              ),
-
-              // Display Calculated Cost
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Text(
-                  'Estimated Cost: RM${_calculatedCost.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Submit Button
-              ElevatedButton(
-                onPressed: _submitForm,
-                child: const Text('Book Appointment'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
