@@ -77,7 +77,7 @@ app.get("/patients/:id", async (req, res) => {
 
 // Endpoint to get all prescriptions for a specific patient
 app.get("/patients/:id/prescriptions", async (req, res) => {
-  const patientId = req.params.id; // Correct the parameter to use 'id'
+  const patientId = req.params._id; // Correct the parameter to use 'id'
   const dbName = "test2"; // Specify the database name
   const collectionName = "patients"; // Specify the collection name
 
