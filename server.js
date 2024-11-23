@@ -136,7 +136,7 @@ app.listen(PORT, () => {
 app.get('/appointments', async (req, res) => {
   try {
     await client.connect();
-    const database = client.db('test');
+    const database = client.db('Wellcheck');
     const appointmentsCollection = database.collection('appointments');
 
     // Fetch all appointments from the database
