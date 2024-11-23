@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+import 'appointment_page.dart';
+=======
+>>>>>>> f01b34d7182743095643ea72b9aa413fac03774b
+>>>>>>> Stashed changes
 import 'viewListAppointment_service.dart'; // Import the AppointmentService class
 import 'appointment_model.dart'; // Import the Appointment model class
 

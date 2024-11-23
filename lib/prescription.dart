@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'mongodb_service.dart'; // Import the MongoDB service
-import 'prescriptions_model.dart'; // Import the prescription model
+import 'prescriptions_model.dart'; // Import the combined models file
 
 class PrescriptionUtils {
-  static Prescription? prescription;
+  static Patient? patient;
 
-  /// Fetches the prescription data and shows the appropriate dialog
-  static Future<void> fetchData(BuildContext context) async {
-    prescription = await MongoDBService.fetchPrescription();
-    if (prescription != null) {
-      showPrescriptionDialog(context);
+  /// Fetches the patient data (with nested prescriptions) and shows the dialog
+  static Future<void> fetchData(BuildContext context, String patientId) async {
+    patient = await MongoDBService.fetchPatientData(patientId);
+    if (patient != null && patient!.prescriptions.isNotEmpty) {
+      showPrescriptionDialog(context, patient!.prescriptions.first); // Show the first prescription
     } else {
-      showErrorDialog(context, "Failed to fetch prescription details.");
+      showErrorDialog(context, "No prescription details available.");
     }
   }
 
   /// Displays the prescription details in a dialog
-  static void showPrescriptionDialog(BuildContext context) {
+  static void showPrescriptionDialog(BuildContext context, Prescription prescription) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -27,7 +27,7 @@ class PrescriptionUtils {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Box for Doctor's Name and Specialty
+                // Box for Patient Name and Contact
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(10.0),
@@ -40,42 +40,19 @@ class PrescriptionUtils {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Doctor Information:',
+                          'Patient Information:',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 5),
-                        Text('Name: ${prescription!.doctorName}'),
-                        Text('Specialty: ${prescription!.doctorSpecialty}'),
+                        Text('Name: ${patient!.name}'),
+                        Text('Contact: ${patient!.contact}'),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Box for Time of Prescription
+                // Box for Doctor's Name and Diagnosis
                 Container(
-                  padding: const EdgeInsets.all(10.0),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8.0),
-                    border: Border.all(
-                        color: const Color.fromARGB(255, 135, 201, 137)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Time of Prescription:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(prescription!.time),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // Box for Grouped Details: Prescriptions, Diagnosis, Medications
-                Container(
-                  width: 350.0,
                   padding: const EdgeInsets.all(10.0),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
@@ -86,161 +63,96 @@ class PrescriptionUtils {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Prescription Notes Box
-                      Container(
-                        width: 350.0,
-                        padding: const EdgeInsets.all(5.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5.0),
-                          border: Border.all(
-                              color: const Color.fromARGB(255, 135, 201, 137)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Prescriptions:',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(prescription!.notes),
-                          ],
-                        ),
+                      const Text(
+                        'Doctor Information:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 5),
-                      // Diagnosis Box
-                      Container(
-                        width: 350.0,
-                        padding: const EdgeInsets.all(5.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5.0),
-                          border: Border.all(
-                              color: const Color.fromARGB(255, 135, 201, 137)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Diagnosis:',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(prescription!.diagnosis),
-                          ],
-                        ),
+                      Text('Assigned Doctor: ${patient!.assignedDoctor}'),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Diagnosis:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 5),
-                      // Medications Box with Table
-                      Container(
-                        width: 350.0,
-                        padding: const EdgeInsets.all(5.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(5.0),
-                          border: Border.all(
-                              color: const Color.fromARGB(255, 135, 201, 137)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Medications:',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 5),
-                            Table(
-                              border: TableBorder.all(
-                                  color:
-                                      const Color.fromARGB(255, 135, 201, 137)),
-                              columnWidths: const {
-                                0: IntrinsicColumnWidth(),
-                              },
-                              children: [
-                                TableRow(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                  ),
-                                  children: const [
-                                    Padding(
-                                      padding:
-                                          EdgeInsets.only(left: 10.0, top: 5.0),
-                                      child: Text('No.',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.all(5.0),
-                                      child: Text('Medicine Name',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.all(5.0),
-                                      child: Text('Dosage',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.all(5.0),
-                                      child: Text('Frequency',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                  ],
-                                ),
-                                for (int i = 0;
-                                    i < prescription!.medicationsList.length;
-                                    i++)
-                                  TableRow(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Text('${i + 1}'),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Text(prescription!
-                                            .medicationsList[i].name),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Text(prescription!
-                                            .medicationsList[i].dosage),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(5.0),
-                                        child: Text(prescription!
-                                            .medicationsList[i].frequency),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                      Text(prescription.diagnosisAilmentDescription),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Pagination Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (int i = 1; i <= 5; i++)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Logic to handle page change can be implemented here
-                          },
-                          child: Text('$i'),
-                        ),
+                const SizedBox(height: 10),
+                // Medications Table
+                Container(
+                  width: 350.0,
+                  padding: const EdgeInsets.all(5.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(5.0),
+                    border: Border.all(
+                        color: const Color.fromARGB(255, 135, 201, 137)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Medications:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                  ],
+                      const SizedBox(height: 5),
+                      Table(
+                        border: TableBorder.all(
+                            color:
+                                const Color.fromARGB(255, 135, 201, 137)),
+                        columnWidths: const {
+                          0: IntrinsicColumnWidth(),
+                        },
+                        children: [
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                            ),
+                            children: const [
+                              Padding(
+                                padding:
+                                    EdgeInsets.only(left: 10.0, top: 5.0),
+                                child: Text('No.',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    )),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.all(5.0),
+                                child: Text('Medicine Name',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                              Padding(
+                                padding: EdgeInsets.all(5.0),
+                                child: Text('Dosage',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                          for (int i = 0; i < prescription.medicineList.length; i++)
+                            TableRow(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(5.0), 
+                                  child: Text('${i + 1}'),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(5.0),
+                                  child: Text(prescription.medicineList[i].name),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(5.0),
+                                  child: Text(prescription.medicineList[i].dosage),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -9,11 +9,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  bool _isPasswordVisible = false; // Add this line for password visibility state
+  bool _isPasswordVisible =
+      false; // Add this line for password visibility state
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
@@ -23,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
 
       try {
         final response = await LoginService.login(
-          username: _usernameController.text.trim(),
+          userId: _userIdController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
@@ -36,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
             Navigator.pushReplacementNamed(context, '/dashboard');
           } else {
             _showErrorDialog(
-              response['message'] ?? 'An error occurred during login'
+              response['message'] ?? 'An error occurred during login',
             );
           }
         }
@@ -57,13 +58,13 @@ class _LoginPageState extends State<LoginPage> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text(
-          message.toLowerCase().contains('access denied') 
-            ? 'Access Denied' 
-            : 'Login Error',
+          message.toLowerCase().contains('access denied')
+              ? 'Access Denied'
+              : 'Login Error',
           style: TextStyle(
-            color: message.toLowerCase().contains('access denied') 
-              ? Colors.red[700] 
-              : Colors.black,
+            color: message.toLowerCase().contains('access denied')
+                ? Colors.red[700]
+                : Colors.black,
           ),
         ),
         content: Text(message),
@@ -110,15 +111,15 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
-                    controller: _usernameController,
+                    controller: _userIdController,
                     decoration: const InputDecoration(
-                      labelText: 'Username',
+                      labelText: 'User ID', // Changed label to "User ID"
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.person),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your username';
+                        return 'Please enter your User ID';
                       }
                       return null;
                     },
@@ -133,9 +134,9 @@ class _LoginPageState extends State<LoginPage> {
                       // Add suffix icon for password visibility toggle
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _isPasswordVisible 
-                            ? Icons.visibility 
-                            : Icons.visibility_off,
+                          _isPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                           color: const Color(0xFF4CAF93),
                         ),
                         onPressed: () {
@@ -145,7 +146,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                       ),
                     ),
-                    obscureText: !_isPasswordVisible, // Toggle password visibility
+                    obscureText:
+                        !_isPasswordVisible, // Toggle password visibility
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your password';

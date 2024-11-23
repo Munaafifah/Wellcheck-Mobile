@@ -1,23 +1,25 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'prescriptions_model.dart';
+import 'prescriptions_model.dart'; // Combined model file
 
 class MongoDBService {
   static const String _apiUrl =
-      'http://localhost:5000/prescriptions'; // Update to the correct endpoint
+      'http://localhost:5000/patients'; // Update to the correct endpoint
 
-  static Future<Prescription?> fetchPrescription() async {
+  static Future<Patient?> fetchPatientData(String patientId) async {
     try {
-      final response = await http.get(Uri.parse(_apiUrl));
+      // Assuming the endpoint takes a patientId as a query parameter
+      final response = await http.get(Uri.parse('$_apiUrl/$patientId'));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return Prescription.fromJson(
-            data); // Deserialize into Prescription model
+        return Patient.fromJson(data); // Deserialize into Patient model
       } else {
-        return null; // Failed to load data
+        print('Failed to load patient data. Status code: ${response.statusCode}');
+        return null;
       }
     } catch (e) {
-      print('Error fetching data: $e');
+      print('Error fetching patient data: $e');
       return null; // Handle errors
     }
   }
