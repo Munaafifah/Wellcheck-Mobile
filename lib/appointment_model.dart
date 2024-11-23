@@ -18,8 +18,7 @@ class Appointment {
   // Convert Appointment object to JSON
   Map<String, dynamic> toJson() {
     return {
-      'appointmentDate':
-          appointmentDate.toIso8601String().split('T')[0], // Only the date
+      'appointmentDate': appointmentDate.toIso8601String().split('T')[0], // Only the date
       'appointmentTime': appointmentTime, // Time as a string (e.g., "14:30")
       'duration': duration,
       'typeOfSickness': typeOfSickness,
@@ -36,15 +35,13 @@ class Appointment {
       duration: json['duration'],
       typeOfSickness: json['typeOfSickness'],
       additionalNotes: json['additionalNotes'],
-      appointmentCost:
-          json['appointmentCost'], // Parse appointment cost from JSON
+      appointmentCost: json['appointmentCost'], // Parse appointment cost from JSON
     );
   }
 
   // Method to calculate the cost of the appointment based on duration
   static double calculateCost(String duration) {
-    final durationMinutes =
-        int.tryParse(duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    final durationMinutes = int.tryParse(duration.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     return durationMinutes * 1.0; // RM1 per minute
   }
 
