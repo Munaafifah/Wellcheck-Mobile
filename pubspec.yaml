@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   mongo_dart: ^0.8.0  # or the latest version available
+  intl: ^0.18.0  # Add this line for the intl package
 
 
 
