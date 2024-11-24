@@ -29,7 +29,8 @@ class MyApp extends StatelessWidget {
             const AppointmentsPage(), // Appointment route
         '/editHealthInfo': (context) =>
             const EditHealthInformationPage(), // New route
-        '/symptomlist': (context) => SymptomListPage(), // Fixed constructor
+        '/symptomlist': (context) =>
+            const SymptomListPage(), // Fixed constructor
       },
     );
   }
