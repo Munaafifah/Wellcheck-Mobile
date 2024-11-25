@@ -147,10 +147,13 @@ app.get('/appointments', async (req, res) => {
 
     // Map the appointments data to the desired response format
     const response = appointments.map(appointment => ({
-      appointmentDateTime: new Date(`${appointment.appointmentDate}T${appointment.appointmentTime}:00Z`), // Combine date and time
+      //appointmentDateTime: new Date(${appointment.appointmentDate}T${appointment.appointmentTime}:00Z), // Combine date and time
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.appointmentTime,
       duration: appointment.duration,
       typeOfSickness: appointment.typeOfSickness,
       additionalNotes: appointment.additionalNotes,
+      appointmentCost: appointment.appointmentCost,
       createdAt: appointment.createdAt
     }));
 
@@ -192,7 +195,7 @@ app.post('/appointments', async (req, res) => {
     const appointmentCost = durationMinutes * 1; // RM1 per minute
 
     // Combine appointmentDate and appointmentTime into a single Date object
-    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00Z`);
+    //const appointmentDateTime = new Date(${appointmentDate}T${appointmentTime}:00Z);
 
     // Prepare the new appointment object
     const newAppointment = {
@@ -201,7 +204,7 @@ app.post('/appointments', async (req, res) => {
       duration,                   // Appointment duration
       typeOfSickness,             // Type of sickness
       additionalNotes: additionalNotes || '', // Additional notes (optional)
-      appointmentDateTime,        // Full datetime for convenience
+      //appointmentDateTime,        // Full datetime for convenience
       appointmentCost,            // Include calculated cost
       createdAt: new Date(),      // Timestamp for when the appointment was created
     };
@@ -415,7 +418,3 @@ app.delete('/symptoms/:id', async (req, res) => {
     await client.close();
   }
 });
-
-
-
-
