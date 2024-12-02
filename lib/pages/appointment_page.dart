@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
-// For date formatting
+import 'package:intl/intl.dart'; // For date formatting
 
 class AppointmentPage extends StatefulWidget {
   const AppointmentPage({super.key});

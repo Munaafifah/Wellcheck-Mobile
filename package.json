@@ -1,23 +1,25 @@
 {
-  "name": "flutter_application_1",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.11.0",
+    "uuid": "^11.0.3"
+  },
+  "name": "session2",
   "version": "1.0.0",
   "description": "A new Flutter project.",
-  "main": "index.js",
+  "main": "server.js",
   "directories": {
     "lib": "lib",
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "flutter_application_1": "file:",
-    "mongodb": "^6.10.0"
-  }
+  "license": "ISC"
 }
