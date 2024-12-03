@@ -23,25 +23,30 @@ class AppointmentService {
 
   // Create a new appointment
   Future<void> createAppointment({
-    required String token,
-    required DateTime appointmentDate,
-    required TimeOfDay appointmentTime,
-    required String duration,
-    required String typeOfSickness,
-    required String additionalNotes,
-    required String email,
-    required double appointmentCost,
-  }) async {
-    final String formattedTime =
-        '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
+  required String token,
+  required DateTime appointmentDate,
+  required TimeOfDay appointmentTime,
+  required String duration,
+  required String typeOfSickness,
+  required String additionalNotes,
+  required String email,
+  required double appointmentCost,
+  required String statusPayment,
+}) async {
+  final String formattedTime =
+      '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
 
-    final response = await http.post(
-      Uri.parse("$baseUrl/appointments"), // Endpoint for creating appointments
+  // Validate input fields
+  if (typeOfSickness.isEmpty) {
+    throw Exception("Type of sickness cannot be empty.");
+  }
+
+  final response = await makeRequest('POST', '/appointments',
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
       },
-      body: jsonEncode({
+      body: {
         "appointmentDate": appointmentDate.toIso8601String(),
         "appointmentTime": formattedTime,
         "duration": duration,
@@ -49,13 +54,14 @@ class AppointmentService {
         "additionalNotes": additionalNotes,
         "email": email,
         "appointmentCost": appointmentCost,
-      }),
-    );
+        "statusPayment": "Not Paid", // Add payment status if needed
+      });
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception("Failed to create appointment: ${response.body}");
-    }
+  // Handle response
+  if (response.statusCode != 200 && response.statusCode != 201) {
+    throw Exception("Failed to create appointment: ${response.body}");
   }
+}
 
   // Fetch appointments for a specific user
   Future<List<Appointment>> fetchAppointments(String token, String userId) async {

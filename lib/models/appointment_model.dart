@@ -12,6 +12,7 @@ class Appointment {
   final String additionalNotes;
   final String email;
   final double appointmentCost;
+  final String statusPayment; // New property for payment status
 
   Appointment({
     required this.appointmentId,
@@ -24,6 +25,7 @@ class Appointment {
     required this.additionalNotes,
     required this.email,
     required this.appointmentCost,
+    this.statusPayment = "Not Paid", // Initialized to "not paid"
   });
 
   // Convert Appointment object to JSON for API calls
@@ -40,6 +42,7 @@ class Appointment {
       'additionalNotes': additionalNotes,
       'email': email,
       'appointmentCost': appointmentCost,
+      'statusPayment': statusPayment, // Include in JSON
     };
   }
 
@@ -70,6 +73,7 @@ class Appointment {
       additionalNotes: json['additionalNotes'] ?? 'No additional notes provided',
       email: json['email'] ?? 'No email provided',
       appointmentCost: (json['appointmentCost'] as num?)?.toDouble() ?? 0.0,
+      statusPayment: json['statusPayment'] ?? 'not paid', // Include in factory constructor
     );
   }
 

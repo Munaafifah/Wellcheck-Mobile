@@ -324,6 +324,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         additionalNotes,
         email,
         appointmentCost, // New field for cost
+        statusPayment = "Not Paid",
       } = req.body;
       const userId = decoded.userId; // Assuming `userId` is in the JWT payload
   
@@ -334,7 +335,8 @@ app.get("/prescriptions/:userId", async (req, res) => {
         !duration ||
         !typeOfSickness ||
         !email ||
-        appointmentCost == null
+        appointmentCost == null 
+        
       ) {
         return res.status(400).json({ error: "Missing required fields" });
       }
@@ -380,7 +382,8 @@ app.get("/prescriptions/:userId", async (req, res) => {
           additionalNotes,
           email, // Include email in the appointment object
           appointmentCost, // Include cost in the appointment object
-          timestamp: new Date().toISOString(),
+          statusPayment,
+          timestamp: new Date(appointmentDate),
         };
   
         // Insert appointment into the database
@@ -405,7 +408,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
-  
+
   // Start the server
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
