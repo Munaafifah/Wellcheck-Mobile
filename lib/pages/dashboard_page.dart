@@ -225,7 +225,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         const SizedBox(height: 10),
         _buildActionButton(
-          "View Appointments",
+          "Appointments",
           Icons.calendar_today,
           () {
             Navigator.push(

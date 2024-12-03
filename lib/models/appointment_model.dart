@@ -32,9 +32,9 @@ class Appointment {
       "appointmentId": appointmentId,
       "userId": userId,
       "doctorId": doctorId,
-      "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate), // Convert date to string
+      "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate),
       "appointmentTime":
-          '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}', // Convert TimeOfDay to HH:mm string
+          '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
       'duration': duration,
       'typeOfSickness': typeOfSickness,
       'additionalNotes': additionalNotes,
@@ -45,7 +45,6 @@ class Appointment {
 
   // Create Appointment object from JSON response
   factory Appointment.fromJson(Map<String, dynamic> json) {
-    // Parse TimeOfDay from string (e.g., "14:30")
     late TimeOfDay parsedTime;
     try {
       final timeParts = (json['appointmentTime'] as String).split(':');
@@ -54,7 +53,7 @@ class Appointment {
         minute: int.parse(timeParts[1]),
       );
     } catch (e) {
-      parsedTime = const TimeOfDay(hour: 0, minute: 0); // Default to midnight on error
+      parsedTime = const TimeOfDay(hour: 0, minute: 0);
       debugPrint('Error parsing appointmentTime: $e');
     }
 
@@ -74,19 +73,13 @@ class Appointment {
     );
   }
 
-  // Method to calculate the cost of the appointment
-  static double calculateCost(String duration) {
-    final durationMinutes = int.tryParse(duration) ?? 0;
-    return durationMinutes * 1.0; // RM1 per minute
-  }
-
   // Method to format the appointment date for display purposes
   String getFormattedDate() {
-    return DateFormat('dd MMM yyyy').format(appointmentDate); // e.g., 26 Nov 2024
+    return DateFormat('dd MMM yyyy').format(appointmentDate);
   }
 
   // Method to format the appointment time for display
   String getFormattedTime() {
-    return '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}'; // e.g., "14:30"
+    return '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -17,6 +17,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final TextEditingController _timeController = TextEditingController();
   final TextEditingController _additionalNotesController =
       TextEditingController();
+  final TextEditingController _customSicknessController =
+      TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
@@ -25,15 +27,16 @@ class _AppointmentPageState extends State<AppointmentPage> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _selectedDuration;
-  String? _selectedSicknessType;
+  // String? _selectedSicknessType;
   double _appointmentCost = 0.0;
+  final List<String> _selectedSicknessTypes = [];
 
   final List<String> _sicknessTypes = [
     'Flu',
     'Headache',
     'Stomachache',
     'Cold',
-    'Other',
+    'Follow-up Appointment',
   ];
 
   @override
@@ -42,21 +45,34 @@ class _AppointmentPageState extends State<AppointmentPage> {
     _dateController.dispose();
     _timeController.dispose();
     _additionalNotesController.dispose();
+    _customSicknessController.dispose();
     super.dispose();
   }
 
-  void _calculateCost(String? duration) {
-    if (duration != null) {
-      final durationMinutes = int.tryParse(duration) ?? 0;
-      setState(() {
-        _appointmentCost = durationMinutes * 1.0; // RM1 per minute
-      });
-    } else {
-      setState(() {
-        _appointmentCost = 0.0;
-      });
-    }
+  void _calculateCost() {
+    setState(() {
+      if (_selectedSicknessTypes.contains('Follow-up Appointment')) {
+        _appointmentCost = 5.0; // RM5 for Follow-up Appointment
+      } else {
+        _appointmentCost = 1.0; // Reset to 0
+      }
+
+    });
   }
+
+  void _addCustomSicknessType() {
+  final customType = _customSicknessController.text.trim();
+  if (customType.isNotEmpty) {
+    setState(() {
+      if (!_sicknessTypes.contains(customType)) {
+        _sicknessTypes.add(customType);
+      }
+      _selectedSicknessTypes.add(customType);
+      _customSicknessController.clear();
+      _calculateCost(); // Recalculate cost
+    });
+  }
+}
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
@@ -73,12 +89,13 @@ class _AppointmentPageState extends State<AppointmentPage> {
     try {
       final token = await _storage.read(key: "auth_token");
       if (token != null) {
+        String sicknessTypesString = _selectedSicknessTypes.join(', ');
         await _appointmentService.createAppointment(
           token: token,
           appointmentDate: _selectedDate!,
           appointmentTime: _selectedTime!,
           duration: _selectedDuration!,
-          typeOfSickness: _selectedSicknessType!,
+          typeOfSickness: sicknessTypesString,
           additionalNotes: _additionalNotesController.text,
           email: _emailController.text,
           appointmentCost: _appointmentCost,
@@ -94,7 +111,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
           _selectedDate = null;
           _selectedTime = null;
           _selectedDuration = null;
-          _selectedSicknessType = null;
+          _selectedSicknessTypes.clear();
           _additionalNotesController.clear();
           _dateController.clear();
           _timeController.clear();
@@ -248,7 +265,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                       onChanged: (value) {
                         setState(() {
                           _selectedDuration = value;
-                          _calculateCost(value); // Update cost
+                          //_calculateCost(value); // Update cost
                         });
                       },
                       validator: (value) =>
@@ -256,36 +273,69 @@ class _AppointmentPageState extends State<AppointmentPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Appointment Cost Display
-                    Text(
-                      'Appointment Cost: RM${_appointmentCost.toStringAsFixed(2)}',
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Type of Sickness Dropdown
-                    DropdownButtonFormField<String>(
-                      value: _selectedSicknessType,
-                      decoration: InputDecoration(
-                        labelText: 'Type of Sickness',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items: _sicknessTypes
-                          .map((type) => DropdownMenuItem(
-                                value: type,
-                                child: Text(type),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSicknessType = value;
-                        });
-                      },
-                      validator: (value) => value == null
-                          ? 'Please select a sickness type'
+                    // Type of Sickness Multi-Select
+                    FormField<List<String>>(
+                      validator: (value) => _selectedSicknessTypes.isEmpty
+                          ? 'Please select at least one symptom'
                           : null,
+                      builder: (state) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Multi-Select Chips
+                          Wrap(
+                            spacing: 8.0,
+                            children: _sicknessTypes.map((type) {
+                              return ChoiceChip(
+                                label: Text(type),
+                                selected: _selectedSicknessTypes.contains(type),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedSicknessTypes.add(type);
+                                    } else {
+                                      _selectedSicknessTypes.remove(type);
+                                    }
+                                    _calculateCost(); // Recalculate cost whenever selection changes
+                                  });
+                                  state.didChange(_selectedSicknessTypes);
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          if (state.hasError)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10, left: 12),
+                              child: Text(
+                                state.errorText!,
+                                style: TextStyle(
+                                    color: Colors.red[700], fontSize: 12),
+                              ),
+                            ),
+
+                          // Custom Sickness Type Input
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _customSicknessController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Add Custom Symptom',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _addCustomSicknessType,
+                                child: const Text('Add'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -314,6 +364,14 @@ class _AppointmentPageState extends State<AppointmentPage> {
                             : const Text('Book Appointment'),
                       ),
                     ),
+
+                    // Appointment Cost Display
+                    Text(
+                        'Appointment Cost: RM${_appointmentCost.toStringAsFixed(2)}',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        )),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
