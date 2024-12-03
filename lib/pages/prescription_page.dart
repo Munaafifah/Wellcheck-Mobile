@@ -59,7 +59,7 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
         child: Column(
           children: [
             const SizedBox(height: 80),
-            _buildHeader(),
+            _buildHeader(context),
             Expanded(
               child: _prescriptions == null
                   ? const Center(
@@ -75,20 +75,43 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
     );
   }
 
-  Widget _buildHeader() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20),
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Prescriptions",
-            style: TextStyle(color: Colors.white, fontSize: 40),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  Navigator.pop(
+                      context); // Navigate back to the previous screen
+                },
+              ),
+              const Expanded(
+                child: Text(
+                  "Prescriptions",
+                  textAlign: TextAlign.center, // Center-align the text
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(
+                  width: 48), // Placeholder for symmetry with back button
+            ],
           ),
-          SizedBox(height: 10),
-          Text(
+          const SizedBox(height: 10),
+          const Text(
             "View your medical prescriptions here",
-            style: TextStyle(color: Colors.white, fontSize: 18),
+            textAlign: TextAlign.center, // Center-align the subtitle
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+            ),
           ),
         ],
       ),
@@ -125,20 +148,30 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Prescription ID: ${prescription.prescriptionId}",
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Color(0xFF4CAF93),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Prescription ID: ${prescription.prescriptionId}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Color(0xFF4CAF93),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
+                  onPressed: () {
+                    _showPrescriptionDetails(context, prescription);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            _buildDetailRow("Diagnosis", prescription.diagnosisAilmentDescription),
-            _buildDetailRow("Doctor ID", prescription.doctorId),
             _buildDetailRow(
-                "Medicines", prescription.medicineList.join(", ")),
-            _buildDetailRow("Description", prescription.prescriptionDescription),
+                "Diagnosis", prescription.diagnosisAilmentDescription),
+            _buildDetailRow(
+                "Description", prescription.prescriptionDescription),
             _buildDetailRow(
               "Date",
               "${prescription.timestamp.toLocal()}".split(' ')[0],
@@ -146,6 +179,85 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showPrescriptionDetails(
+      BuildContext context, Prescription prescription) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Text(
+          "Prescription Details - ID: ${prescription.prescriptionId}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SingleChildScrollView(
+          child: Table(
+            columnWidths: const {
+              0: IntrinsicColumnWidth(), // Adjust the first column width
+              1: FlexColumnWidth(), // Let the second column take remaining space
+            },
+            border: TableBorder.all(
+              color: Colors.black, // Table border color
+              width: 1,
+            ),
+            children: [
+              // Diagnosis Row
+              _buildTableRow(
+                  "Diagnosis", prescription.diagnosisAilmentDescription),
+              // Doctor ID Row
+              _buildTableRow("Doctor ID", prescription.doctorId),
+              // Medicines Row
+              _buildTableRow("Medicines", prescription.medicineList.join(", ")),
+              // Description Row
+              _buildTableRow(
+                  "Description", prescription.prescriptionDescription),
+              // Date Row
+              _buildTableRow(
+                  "Date", "${prescription.timestamp.toLocal()}".split(' ')[0]),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  TableRow _buildTableRow(String title, String value) {
+    return TableRow(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F8E9), // Light green background for rows
+        borderRadius: BorderRadius.circular(15), // Smooth rounded edges
+      ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Text(
+            "$title:",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF4CAF93), // Green text for titles
+              fontSize: 16,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black, // Black text for values
+              fontSize: 16,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
