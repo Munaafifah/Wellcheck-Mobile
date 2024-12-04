@@ -23,13 +23,17 @@ app.post("/login", async (req, res) => {
 
     // Connect to the database
     await client.connect();
-    const users = client.db("Wellcheck").collection("users");
+    const users = client.db("Wellcheck2").collection("User");
 
-    // Find the user by userId
-    const user = await users.findOne({ userId });
-    if (!user) {
+    // Find the user document using the userId as the key
+    const userDocument = await users.findOne({ [userId]: { $exists: true } });
+
+    if (!userDocument || !userDocument[userId]) {
       return res.status(404).json({ error: "User not found" });
     }
+
+    // Extract user details from the nested object
+    const user = userDocument[userId];
 
     // Check if the user is a patient
     if (user.role !== "PATIENT") {
@@ -37,20 +41,25 @@ app.post("/login", async (req, res) => {
     }
 
     // Validate the password
-    const isPasswordValid = password === user.password; // If using bcrypt, update this logic
+    const isPasswordValid = password === user.password; // Update to use bcrypt if needed
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid password" });
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ userId: user.userId }, "your_secret_key");
+    const token = jwt.sign({ userId: user.userId }, "your_secret_key", {
+      expiresIn: "1h", // Token expires in 1 hour
+    });
+
+    // Send the token as a response
     res.json({ token });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });
-  }
+  } finally {
+    await client.close(); // Close the database connection
+  }
 });
-
 
 // Fetch patient details endpoint
 app.get("/patient/:userId", async (req, res) => {
@@ -281,7 +290,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         // Fetch appointments for the user
         try {
           await client.connect();
-          const appointments = client.db("Wellcheck").collection("appointments");
+          const appointments = client.db("Wellcheck2").collection("appointments");
           const userAppointments = await appointments.find({ userId }).toArray();
   
           res.json(userAppointments);
@@ -357,7 +366,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         const doctorId = patient.assigned_doctor;
   
         // Check for duplicate appointment
-        const appointments = client.db("Wellcheck").collection("appointments");
+        const appointments = client.db("Wellcheck2").collection("appointments");
         const existingAppointment = await appointments.findOne({
           userId,
           appointmentDate,
