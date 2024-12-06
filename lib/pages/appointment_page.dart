@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
-// For date formatting
+import 'package:intl/intl.dart'; // For date formatting
 
 class AppointmentPage extends StatefulWidget {
   const AppointmentPage({super.key});
@@ -56,22 +56,23 @@ class _AppointmentPageState extends State<AppointmentPage> {
       } else {
         _appointmentCost = 1.0; // Reset to 0
       }
+
     });
   }
 
   void _addCustomSicknessType() {
-    final customType = _customSicknessController.text.trim();
-    if (customType.isNotEmpty) {
-      setState(() {
-        if (!_sicknessTypes.contains(customType)) {
-          _sicknessTypes.add(customType);
-        }
-        _selectedSicknessTypes.add(customType);
-        _customSicknessController.clear();
-        _calculateCost(); // Recalculate cost
-      });
-    }
+  final customType = _customSicknessController.text.trim();
+  if (customType.isNotEmpty) {
+    setState(() {
+      if (!_sicknessTypes.contains(customType)) {
+        _sicknessTypes.add(customType);
+      }
+      _selectedSicknessTypes.add(customType);
+      _customSicknessController.clear();
+      _calculateCost(); // Recalculate cost
+    });
   }
+}
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
@@ -98,7 +99,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
           additionalNotes: _additionalNotesController.text,
           email: _emailController.text,
           appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
+          statusPayment: "Not Paid", 
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
