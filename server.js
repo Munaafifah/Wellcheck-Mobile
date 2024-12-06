@@ -25,15 +25,13 @@ app.post("/login", async (req, res) => {
     await client.connect();
     const users = client.db("Wellcheck2").collection("User");
 
-    // Find the user document using the userId as the key
-    const userDocument = await users.findOne({ [userId]: { $exists: true } });
-
-    if (!userDocument || !userDocument[userId]) {
+    // Find the user by _id and nested key
+    const userDoc = await users.findOne({ _id: userId });
+    if (!userDoc || !userDoc[userId]) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Extract user details from the nested object
-    const user = userDocument[userId];
+    const user = userDoc[userId]; // Access the nested user data
 
     // Check if the user is a patient
     if (user.role !== "PATIENT") {
@@ -41,24 +39,18 @@ app.post("/login", async (req, res) => {
     }
 
     // Validate the password
-    const isPasswordValid = password === user.password; // Update to use bcrypt if needed
+    const isPasswordValid = password === user.password; // If using bcrypt, update this logic
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid password" });
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ userId: user.userId }, "your_secret_key", {
-      expiresIn: "1h", // Token expires in 1 hour
-    });
-
-    // Send the token as a response
+    const token = jwt.sign({ userId: user.userId }, "your_secret_key");
     res.json({ token });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error(error);
     res.status(500).json({ error: "Internal server error" });
-  } finally {
-    await client.close(); // Close the database connection
-  }
+  }
 });
 
 // Fetch patient details endpoint
@@ -70,19 +62,22 @@ app.get("/patient/:userId", async (req, res) => {
     }
 
     // Verify token
-    jwt.verify(token, secretKey, async (err, decoded) => {
+    jwt.verify(token, "your_secret_key", async (err, decoded) => {
       if (err) {
         return res.status(401).json({ error: "Invalid token" });
       }
 
       const userId = req.params.userId;
       await client.connect();
-      const patients = client.db("Wellcheck").collection("patients");
-      const patient = await patients.findOne({ _id: userId });
+      const patients = client.db("Wellcheck2").collection("Patient");
 
-      if (!patient) {
+      // Fetch the patient document and access the nested data
+      const patientDoc = await patients.findOne({ _id: userId });
+      if (!patientDoc || !patientDoc[userId]) {
         return res.status(404).json({ error: "Patient not found" });
       }
+
+      const patient = patientDoc[userId]; // Access the nested patient data
 
       res.json({
         name: patient.name,
@@ -93,38 +88,48 @@ app.get("/patient/:userId", async (req, res) => {
       });
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
 app.get("/prescriptions/:userId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-  
-      // Verify the token
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const userId = req.params.userId;
-        await client.connect();
-        const patients = client.db("Wellcheck").collection("patients");
-        const patient = await patients.findOne({ _id: userId });
-  
-        if (!patient || !patient.prescriptions) {
-          return res.status(404).json({ error: "No prescriptions found for this patient" });
-        }
-  
-        res.json(patient.prescriptions);
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
+
+    // Verify the token
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const userId = req.params.userId;
+      await client.connect();
+      const patients = client.db("Wellcheck2").collection("Patient");
+
+      // Fetch the patient document and access the nested data
+      const patientDoc = await patients.findOne({ _id: userId });
+      if (!patientDoc || !patientDoc[userId]) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      const patient = patientDoc[userId]; // Access the nested patient data
+      if (!patient.Prescription || Object.keys(patient.Prescription).length === 0) {
+        return res.status(404).json({ error: "No prescriptions found for this patient" });
+      }
+
+      // Return all prescriptions as an array
+      const prescriptions = Object.values(patient.Prescription);
+      res.json(prescriptions);
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
   
   const { v4: uuidv4 } = require("uuid"); // Add this for unique ID generation
 
