@@ -152,7 +152,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
   
         // Fetch patient details
         await client.connect();
-        const patients = client.db("Wellcheck").collection("patients");
+        const patients = client.db("Wellcheck2").collection("Patient");
         const patient = await patients.findOne({ _id: userId });
   
         if (!patient) {
@@ -165,7 +165,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         const symptomId = uuidv4();
   
         // Insert symptom into symptoms collection
-        const symptoms = client.db("Wellcheck").collection("symptoms");
+        const symptoms = client.db("Wellcheck2").collection("Symptom");
         const newSymptom = {
           symptomId, // Add symptomId
           userId,
@@ -201,7 +201,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
   
         // Fetch symptoms for the user
         await client.connect();
-        const symptoms = client.db("Wellcheck").collection("symptoms");
+        const symptoms = client.db("Wellcheck2").collection("Symptom");
         const userSymptoms = await symptoms.find({ userId }).toArray();
   
         res.json(userSymptoms);
