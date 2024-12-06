@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:session/models/symptom_model.dart';
 import '../services/symptom_service.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
 class SymptomPage extends StatefulWidget {
   const SymptomPage({super.key});
@@ -11,16 +12,41 @@ class SymptomPage extends StatefulWidget {
 }
 
 class _SymptomPageState extends State<SymptomPage> {
-  final TextEditingController _symptomController = TextEditingController();
   final SymptomService _symptomService = SymptomService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final List<String> _selectedSymptoms = [];
   bool _isLoading = false;
 
-  void _submitSymptom() async {
-    final symptomDescription = _symptomController.text;
-    if (symptomDescription.isEmpty) {
+  final List<String> _symptoms = [
+    "Fever",
+    "Cough",
+    "Headache",
+    "Fatigue",
+    "Sore Throat",
+    "Shortness of Breath",
+    "Loss of Smell",
+    "Loss of Taste",
+    "Chest Pain",
+    "Nausea",
+    "Vomiting",
+  ];
+
+  void _addSymptom(String symptom) {
+    if (!_selectedSymptoms.contains(symptom)) {
+      setState(() {
+        _selectedSymptoms.add(symptom);
+      });
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a symptom")),
+        SnackBar(content: Text("$symptom is already added.")),
+      );
+    }
+  }
+
+  void _submitSymptoms() async {
+    if (_selectedSymptoms.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please add at least one symptom.")),
       );
       return;
     }
@@ -32,15 +58,19 @@ class _SymptomPageState extends State<SymptomPage> {
     try {
       final token = await _storage.read(key: "auth_token");
       if (token != null) {
-        await _symptomService.addSymptom(token, symptomDescription);
+        for (final symptom in _selectedSymptoms) {
+          await _symptomService.addSymptom(token, symptom);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Symptom added successfully")),
+          const SnackBar(content: Text("Symptoms submitted successfully")),
         );
-        _symptomController.clear();
+        setState(() {
+          _selectedSymptoms.clear();
+        });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to add symptom")),
+        const SnackBar(content: Text("Failed to submit symptoms")),
       );
     } finally {
       setState(() {
@@ -109,11 +139,13 @@ class _SymptomPageState extends State<SymptomPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Describe Your Symptoms",
+            "Select Your Symptoms",
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          _buildSymptomInput(),
+          _buildSymptomDropdown(),
+          const SizedBox(height: 20),
+          _buildSelectedSymptomsList(),
           const SizedBox(height: 20),
           _buildSubmitButton(),
         ],
@@ -121,34 +153,49 @@ class _SymptomPageState extends State<SymptomPage> {
     );
   }
 
-  Widget _buildSymptomInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+  Widget _buildSymptomDropdown() {
+    return DropdownSearch<String>(
+      items: _symptoms,
+      popupProps: PopupProps.menu(
+        showSearchBox: true,
+        searchFieldProps: TextFieldProps(
+          decoration: InputDecoration(
+            hintText: "Search for a symptom...",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-        ],
-      ),
-      child: TextField(
-        controller: _symptomController,
-        decoration: InputDecoration(
-          hintText: "Enter your symptoms here...",
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.grey[100],
-          contentPadding: const EdgeInsets.all(20),
         ),
-        maxLines: 5,
       ),
+      dropdownDecoratorProps: DropDownDecoratorProps(
+        dropdownSearchDecoration: InputDecoration(
+          labelText: "Symptoms",
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
+      onChanged: (symptom) {
+        if (symptom != null) _addSymptom(symptom);
+      },
+    );
+  }
+
+  Widget _buildSelectedSymptomsList() {
+    return Column(
+      children: _selectedSymptoms
+          .map((symptom) => ListTile(
+                title: Text(symptom),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    setState(() {
+                      _selectedSymptoms.remove(symptom);
+                    });
+                  },
+                ),
+              ))
+          .toList(),
     );
   }
 
@@ -159,7 +206,7 @@ class _SymptomPageState extends State<SymptomPage> {
               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF93)),
             ),
           )
-        : ElevatedButton.icon(
+        : ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4CAF93),
               shape: RoundedRectangleBorder(
@@ -168,10 +215,9 @@ class _SymptomPageState extends State<SymptomPage> {
               padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
               minimumSize: const Size(double.infinity, 50),
             ),
-            onPressed: _submitSymptom,
-            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-            label: const Text(
-              "Submit Symptom",
+            onPressed: _submitSymptoms,
+            child: const Text(
+              "Submit Symptoms",
               style: TextStyle(fontSize: 16, color: Colors.white),
             ),
           );
