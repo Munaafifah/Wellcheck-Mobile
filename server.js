@@ -110,15 +110,16 @@ app.get("/prescriptions/:userId", async (req, res) => {
       await client.connect();
       const patients = client.db("Wellcheck2").collection("Patient");
 
-      // Fetch the patient document and access the nested data
+      // Fetch the patient document
       const patientDoc = await patients.findOne({ _id: userId });
-      if (!patientDoc || !patientDoc[userId]) {
+      if (!patientDoc) {
         return res.status(404).json({ error: "Patient not found" });
       }
 
-      const patient = patientDoc[userId]; // Access the nested patient data
-      if (!patient.Prescription || Object.keys(patient.Prescription).length === 0) {
-        return res.status(404).json({ error: "No prescriptions found for this patient" });
+      // Access the nested patient data
+      const patient = patientDoc[userId]; 
+      if (!patient || !patient.Prescription || Object.keys(patient.Prescription).length === 0) {
+        return res.status(404).json({ error: "No prescriptions found for this patient." });
       }
 
       // Return all prescriptions as an array
