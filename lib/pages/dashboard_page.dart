@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:session/pages/appointment_page.dart';
 import 'package:session/pages/login_page.dart';
-import 'package:session/pages/billing_page.dart';
 import '../services/dashboard_service.dart';
 import '../models/dashboard_model.dart';
 import 'prescription_page.dart';
@@ -31,8 +30,7 @@ class _DashboardPageState extends State<DashboardPage> {
   void _fetchPatient() async {
     final token = await _storage.read(key: "auth_token");
     if (token != null) {
-      final patient =
-          await _dashboardService.fetchPatient(widget.userId, token);
+      final patient = await _dashboardService.fetchPatient(widget.userId, token);
       setState(() {
         _patient = patient;
       });
@@ -233,21 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                    ViewAppointmentsPage(userId: widget.userId),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 10),
-        _buildActionButton(
-          "Billings",
-          Icons.credit_card,
-          () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => BillingPage(userId: widget.userId),
+                builder: (context) => ViewAppointmentsPage(userId: widget.userId),
               ),
             );
           },

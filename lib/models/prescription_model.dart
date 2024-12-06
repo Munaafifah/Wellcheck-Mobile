@@ -25,16 +25,4 @@ class Prescription {
       timestamp: DateTime.parse(json["timestamp"]),
     );
   }
-
-  // toJson method for converting Prescription object to a map
-  Map<String, dynamic> toJson() {
-    return {
-      "prescriptionId": prescriptionId,
-      "diagnosisAilmentDescription": diagnosisAilmentDescription,
-      "doctorId": doctorId,
-      "medicineList": medicineList,
-      "prescriptionDescription": prescriptionDescription,
-      "timestamp": timestamp.toIso8601String(),
-    };
-  }
 }

@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:session/models/appointment_model.dart';
 import 'package:flutter/material.dart';
 
+
 class AppointmentService {
-  static const String baseUrl =
-      "http://localhost:5000"; // Replace with your API URL
+  static const String baseUrl = "http://localhost:5000"; // Replace with your API URL
 
   // Helper method to handle API requests
   Future<http.Response> makeRequest(
@@ -23,51 +23,51 @@ class AppointmentService {
 
   // Create a new appointment
   Future<void> createAppointment({
-    required String token,
-    required DateTime appointmentDate,
-    required TimeOfDay appointmentTime,
-    required String duration,
-    required String typeOfSickness,
-    required String additionalNotes,
-    required String email,
-    required double appointmentCost,
-    required String statusPayment,
-  }) async {
-    final String formattedTime =
-        '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
+  required String token,
+  required DateTime appointmentDate,
+  required TimeOfDay appointmentTime,
+  required String duration,
+  required String typeOfSickness,
+  required String additionalNotes,
+  required String email,
+  required double appointmentCost,
+  required String statusPayment,
+}) async {
+  final String formattedTime =
+      '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
 
-    // Validate input fields
-    if (typeOfSickness.isEmpty) {
-      throw Exception("Type of sickness cannot be empty.");
-    }
-
-    final response = await makeRequest('POST', '/appointments', headers: {
-      "Authorization": "Bearer $token",
-      "Content-Type": "application/json",
-    }, body: {
-      "appointmentDate": appointmentDate.toIso8601String(),
-      "appointmentTime": formattedTime,
-      "duration": duration,
-      "typeOfSickness": typeOfSickness,
-      "additionalNotes": additionalNotes,
-      "email": email,
-      "appointmentCost": appointmentCost,
-      "statusPayment": "Not Paid", // Add payment status if needed
-    });
-
-    // Handle response
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception("Failed to create appointment: ${response.body}");
-    }
+  // Validate input fields
+  if (typeOfSickness.isEmpty) {
+    throw Exception("Type of sickness cannot be empty.");
   }
 
+  final response = await makeRequest('POST', '/appointments',
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: {
+        "appointmentDate": appointmentDate.toIso8601String(),
+        "appointmentTime": formattedTime,
+        "duration": duration,
+        "typeOfSickness": typeOfSickness,
+        "additionalNotes": additionalNotes,
+        "email": email,
+        "appointmentCost": appointmentCost,
+        "statusPayment": "Not Paid", // Add payment status if needed
+      });
+
+  // Handle response
+  if (response.statusCode != 200 && response.statusCode != 201) {
+    throw Exception("Failed to create appointment: ${response.body}");
+  }
+}
+
   // Fetch appointments for a specific user
-  Future<List<Appointment>> fetchAppointments(
-      String token, String userId) async {
+  Future<List<Appointment>> fetchAppointments(String token, String userId) async {
     try {
       final response = await http.get(
-        Uri.parse(
-            "$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
+        Uri.parse("$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -88,8 +88,7 @@ class AppointmentService {
   Future<void> updateAppointment(
       String token, String appointmentId, String newNotes) async {
     final response = await http.put(
-      Uri.parse(
-          "$baseUrl/appointments/$appointmentId"), // Endpoint for updating appointments
+      Uri.parse("$baseUrl/appointments/$appointmentId"), // Endpoint for updating appointments
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -105,8 +104,7 @@ class AppointmentService {
   // Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
-      Uri.parse(
-          "$baseUrl/appointments/$appointmentId"), // Endpoint for deleting appointments
+      Uri.parse("$baseUrl/appointments/$appointmentId"), // Endpoint for deleting appointments
       headers: {
         "Authorization": "Bearer $token",
       },

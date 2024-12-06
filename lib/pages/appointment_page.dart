@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
-// For date formatting
+import 'package:intl/intl.dart'; // For date formatting
 
 class AppointmentPage extends StatefulWidget {
   const AppointmentPage({super.key});
@@ -401,6 +401,9 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  int _currentPage = 0;
+  final int _itemsPerPage = 5;
+
   @override
   void initState() {
     super.initState();
@@ -438,7 +441,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     }
   }
 
-  Future<void> _deleteAppointment(String appointmentId) async {
+    Future<void> _deleteAppointment(String appointmentId) async {
     try {
       final token = await _storage.read(key: "auth_token");
       if (token != null) {
@@ -465,6 +468,17 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
         SnackBar(content: Text("Failed to update appointment: $e")),
       );
     }
+
+  List<Appointment> _getPaginatedAppointments() {
+    if (_filteredAppointments == null) return [];
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+    return _filteredAppointments!.sublist(
+      startIndex,
+      endIndex > _filteredAppointments!.length
+          ? _filteredAppointments!.length
+          : endIndex,
+    );
   }
 
   void _filterAppointments(String? month) {
@@ -478,6 +492,27 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             .where((appointment) =>
                 appointment.appointmentDate.month.toString() == month)
             .toList();
+      });
+    }
+    // Reset to the first page when filtering
+    setState(() {
+      _currentPage = 0;
+    });
+  }
+
+  void _goToPreviousPage() {
+    if (_currentPage > 0) {
+      setState(() {
+        _currentPage--;
+      });
+    }
+  }
+
+  void _goToNextPage() {
+    if (_currentPage <
+        (_filteredAppointments!.length / _itemsPerPage).ceil() - 1) {
+      setState(() {
+        _currentPage++;
       });
     }
   }
@@ -499,7 +534,8 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             Text("Duration: ${appointment.duration} mins"),
           ],
         ),
-        trailing: Row(
+      ),
+              trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
@@ -586,7 +622,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             ),
           ],
         ),
-      ),
+
     );
   }
 
@@ -643,13 +679,76 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               _filteredAppointments!.isEmpty
                           ? const Center(child: Text('No appointments found'))
                           : ListView.builder(
-                              itemCount: _filteredAppointments!.length,
+                              itemCount: _getPaginatedAppointments().length,
                               itemBuilder: (context, index) {
                                 return buildAppointmentCard(
-                                    _filteredAppointments![index]);
+                                    _getPaginatedAppointments()[index]);
                               },
                             ),
                     ),
+                    if (_filteredAppointments != null &&
+                        _filteredAppointments!.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.chevron_left),
+                              onPressed:
+                                  _currentPage > 0 ? _goToPreviousPage : null,
+                              color:
+                                  _currentPage > 0 ? Colors.black : Colors.grey,
+                            ),
+                            for (int i = 0;
+                                i <
+                                    (_filteredAppointments!.length /
+                                            _itemsPerPage)
+                                        .ceil();
+                                i++)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _currentPage = i;
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: i == _currentPage
+                                        ? const Color(0xFF4CAF93)
+                                        : Colors.grey[200],
+                                    foregroundColor: i == _currentPage
+                                        ? Colors.white
+                                        : Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: Text('${i + 1}'),
+                                ),
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right),
+                              onPressed: _currentPage <
+                                      (_filteredAppointments!.length /
+                                                  _itemsPerPage)
+                                              .ceil() -
+                                          1
+                                  ? _goToNextPage
+                                  : null,
+                              color: _currentPage <
+                                      (_filteredAppointments!.length /
+                                                  _itemsPerPage)
+                                              .ceil() -
+                                          1
+                                  ? Colors.black
+                                  : Colors.grey,
+                            ),
+                          ],
+                        ),
+                      )
                   ],
                 ),
       floatingActionButton: FloatingActionButton(
