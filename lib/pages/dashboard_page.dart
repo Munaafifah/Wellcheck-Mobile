@@ -6,6 +6,7 @@ import '../services/dashboard_service.dart';
 import '../models/dashboard_model.dart';
 import 'prescription_page.dart';
 import 'symptom_page.dart';
+import '../pages/viewAppointment_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userId;
@@ -30,7 +31,8 @@ class _DashboardPageState extends State<DashboardPage> {
   void _fetchPatient() async {
     final token = await _storage.read(key: "auth_token");
     if (token != null) {
-      final patient = await _dashboardService.fetchPatient(widget.userId, token);
+      final patient =
+          await _dashboardService.fetchPatient(widget.userId, token);
       setState(() {
         _patient = patient;
       });
@@ -231,7 +233,8 @@ class _DashboardPageState extends State<DashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ViewAppointmentsPage(userId: widget.userId),
+                builder: (context) =>
+                    ViewAppointmentsPage(userId: widget.userId),
               ),
             );
           },
