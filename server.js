@@ -340,6 +340,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         email,
         appointmentCost, // New field for cost
         statusPayment = "Not Paid",
+        statusAppointment = "Not Approved",
       } = req.body;
       const userId = decoded.userId; // Assuming `userId` is in the JWT payload
   
@@ -350,6 +351,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         !duration ||
         !typeOfSickness ||
         !email ||
+        !statusAppointment ||
         appointmentCost == null 
         
       ) {
@@ -398,6 +400,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
           email, // Include email in the appointment object
           appointmentCost, // Include cost in the appointment object
           statusPayment,
+          statusAppointment,
           timestamp: new Date(appointmentDate),
         };
   

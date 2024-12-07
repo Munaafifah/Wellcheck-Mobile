@@ -99,6 +99,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
           email: _emailController.text,
           appointmentCost: _appointmentCost,
           statusPayment: "Not Paid",
+          statusAppointment: "Not Approved",
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
