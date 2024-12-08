@@ -20,6 +20,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   List<Appointment>? _appointments;
   List<Appointment>? _filteredAppointments;
   String? _selectedMonth;
+  String? _statusFilter;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -63,6 +64,37 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     }
   }
 
+  void _filterAppointments({String? month, String? status}) {
+    setState(() {
+      // Start with the full list of appointments
+      _filteredAppointments = _appointments;
+
+      // Filter by month if provided
+      if (month != null && month.isNotEmpty) {
+        _filteredAppointments = _filteredAppointments!.where((appointment) {
+          return appointment.appointmentDate.month.toString() == month;
+        }).toList();
+      }
+
+      // Filter by status if provided
+      if (status != null && status.isNotEmpty) {
+        _filteredAppointments = _filteredAppointments!.where((appointment) {
+          return appointment.statusAppointment == status;
+        }).toList();
+      }
+
+      // Reset to the first page when filters are applied
+      _currentPage = 0;
+    });
+  }
+
+  void _updateStatusFilter(String status) {
+    setState(() {
+      _statusFilter = status;
+    });
+    _filterAppointments(status: status);
+  }
+
   Future<void> _deleteAppointment(String appointmentId) async {
     try {
       final token = await _storage.read(key: "auth_token");
@@ -104,25 +136,6 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     );
   }
 
-  void _filterAppointments(String? month) {
-    if (month == null || month.isEmpty) {
-      setState(() {
-        _filteredAppointments = _appointments;
-      });
-    } else {
-      setState(() {
-        _filteredAppointments = _appointments!
-            .where((appointment) =>
-                appointment.appointmentDate.month.toString() == month)
-            .toList();
-      });
-    }
-    // Reset to the first page when filtering
-    setState(() {
-      _currentPage = 0;
-    });
-  }
-
   void _goToPreviousPage() {
     if (_currentPage > 0) {
       setState(() {
@@ -148,10 +161,32 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
-        title: Text("Appointment - ${appointment.typeOfSickness}"),
+        title: Text(
+          "Appointment - ${appointment.typeOfSickness}",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  "Status: ",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  appointment.statusAppointment, // Dynamically show the status
+                  style: TextStyle(
+                    color: appointment.statusAppointment == "Approved"
+                        ? Colors.green
+                        : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text("Date: ${appointment.getFormattedDate()}"),
             Text("Time: ${appointment.getFormattedTime()}"),
             Text("Duration: ${appointment.duration} mins"),
@@ -285,8 +320,11 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               value: "12", child: Text("December")),
                         ],
                         onChanged: (value) {
-                          _selectedMonth = value;
-                          _filterAppointments(value);
+                          setState(() {
+                            _selectedMonth = value;
+                          });
+                          _filterAppointments(
+                              month: value, status: _statusFilter);
                         },
                         decoration: InputDecoration(
                           labelText: "Filter by Month",
@@ -294,6 +332,127 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _statusFilter = "Not Approved";
+                              });
+                              _filterAppointments(
+                                  month: _selectedMonth,
+                                  status: "Not Approved");
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _statusFilter == "Not Approved"
+                                  ? const Color(0xFF4CAF93)
+                                  : Colors.grey[300],
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              elevation:
+                                  _statusFilter == "Not Approved" ? 6 : 2,
+                            ),
+                            icon: Icon(
+                              Icons.cancel_outlined,
+                              color: _statusFilter == "Not Approved"
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            label: Text(
+                              "Not Approved",
+                              style: TextStyle(
+                                color: _statusFilter == "Not Approved"
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _statusFilter = "Approved";
+                              });
+                              _filterAppointments(
+                                  month: _selectedMonth, status: "Approved");
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _statusFilter == "Approved"
+                                  ? const Color(0xFF4CAF93)
+                                  : Colors.grey[300],
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              elevation: _statusFilter == "Approved" ? 6 : 2,
+                            ),
+                            icon: Icon(
+                              Icons.check_circle_outline,
+                              color: _statusFilter == "Approved"
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            label: Text(
+                              "Approved",
+                              style: TextStyle(
+                                color: _statusFilter == "Approved"
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _statusFilter = null;
+                              });
+                              _filterAppointments(
+                                  month: _selectedMonth, status: null);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _statusFilter == null ||
+                                      _statusFilter!.isEmpty
+                                  ? const Color(0xFF4CAF93)
+                                  : Colors.grey[300],
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              elevation: _statusFilter == null ||
+                                      _statusFilter!.isEmpty
+                                  ? 6
+                                  : 2,
+                            ),
+                            icon: Icon(
+                              Icons.all_inclusive,
+                              color: _statusFilter == null ||
+                                      _statusFilter!.isEmpty
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            label: Text(
+                              "All",
+                              style: TextStyle(
+                                color: _statusFilter == null ||
+                                        _statusFilter!.isEmpty
+                                    ? Colors.white
+                                    : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Expanded(
