@@ -170,7 +170,7 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
         labelText: "Filter by Month",
         labelStyle: const TextStyle(color: Color.fromARGB(255, 137, 87, 146)),
         filled: true,
-        fillColor: Colors.grey.shade300, // Background color
+        fillColor: Colors.white, // Background color
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color.fromARGB(255, 186, 151, 192)),
