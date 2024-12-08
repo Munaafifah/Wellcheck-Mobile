@@ -278,6 +278,24 @@ app.get("/prescriptions/:userId", async (req, res) => {
 
   const tokenBlacklist = new Set(); // In-memory blacklist (use Redis for production)
 
+  
+
+  app.get("/sickness", async (req, res) => {
+  try {
+    await client.connect();
+    const sicknessCollection = client.db("Wellcheck2").collection("sickness"); // Adjust collection name accordingly
+    const sicknesses = await sicknessCollection.find().toArray(); // Fetch all sickness records
+
+    res.json(sicknesses);
+  } catch (dbError) {
+    console.error("Database Error:", dbError);
+    res.status(500).json({ error: "Failed to fetch sickness records" });
+  } finally {
+    await client.close(); // Ensure database connection is closed
+  }
+});
+
+
   app.get("/appointments/:userId", async (req, res) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];

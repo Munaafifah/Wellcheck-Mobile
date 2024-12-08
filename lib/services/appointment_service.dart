@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:session/models/appointment_model.dart';
+import '../models/appointment_model.dart';
 import 'package:flutter/material.dart';
 
 class AppointmentService {

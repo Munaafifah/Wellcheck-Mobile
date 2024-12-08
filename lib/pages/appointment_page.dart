@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
+import '../services/sickness_service.dart';
+import '../models/sickness_model.dart';
 // For date formatting
 
 class AppointmentPage extends StatefulWidget {
@@ -22,22 +24,19 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final SicknessService _sicknessService = SicknessService(); // Instance of your service
+  List<Sickness> _sicknesses = []; // List to hold fetched sickness types
 
   bool _isLoading = false;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _selectedDuration;
-  // String? _selectedSicknessType;
+  //String? _typeOfSickness;
   double _appointmentCost = 0.0;
+  
   final List<String> _selectedSicknessTypes = [];
 
-  final List<String> _sicknessTypes = [
-    'Flu',
-    'Headache',
-    'Stomachache',
-    'Cold',
-    'Follow-up Appointment',
-  ];
+  
 
   @override
   void dispose() {
@@ -50,28 +49,32 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   void _calculateCost() {
-    setState(() {
-      if (_selectedSicknessTypes.contains('Follow-up Appointment')) {
-        _appointmentCost = 5.0; // RM5 for Follow-up Appointment
-      } else {
-        _appointmentCost = 1.0; // Reset to 0
-      }
-    });
-  }
-
-  void _addCustomSicknessType() {
-    final customType = _customSicknessController.text.trim();
-    if (customType.isNotEmpty) {
-      setState(() {
-        if (!_sicknessTypes.contains(customType)) {
-          _sicknessTypes.add(customType);
-        }
-        _selectedSicknessTypes.add(customType);
-        _customSicknessController.clear();
-        _calculateCost(); // Recalculate cost
-      });
+  setState(() {
+    _appointmentCost = 0.0; // Reset before recalculating
+    for (String sicknessName in _selectedSicknessTypes) {
+      // Find the corresponding sickness object
+      final sickness = _sicknesses.firstWhere(
+        (s) => s.name == sicknessName,
+        orElse: () => Sickness(appointmentId: '', name: '', appointmentPrice: 0.0), // Default if not found
+      );
+      _appointmentCost += sickness.appointmentPrice; // Add to cost
     }
-  }
+  });
+}
+
+  // void _addCustomSicknessType() {
+  //   final customType = _customSicknessController.text.trim();
+  //   if (customType.isNotEmpty) {
+  //     setState(() {
+  //       if (!_sicknessTypes.contains(customType)) {
+  //         _sicknessTypes.add(customType);
+  //       }
+  //       _selectedSicknessTypes.add(customType);
+  //       _customSicknessController.clear();
+  //       _calculateCost(); // Recalculate cost
+  //     });
+  //   }
+  // }
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
@@ -130,6 +133,24 @@ class _AppointmentPageState extends State<AppointmentPage> {
       });
     }
   }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSicknesses(); // Call to load sickness types
+  }
+
+  Future<void> _loadSicknesses() async {
+    try {
+      _sicknesses = await _sicknessService.fetchSicknesses();
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load sickness types: ${e.toString()}')),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -275,70 +296,65 @@ class _AppointmentPageState extends State<AppointmentPage> {
                     const SizedBox(height: 16),
 
                     // Type of Sickness Multi-Select
-                    FormField<List<String>>(
-                      validator: (value) => _selectedSicknessTypes.isEmpty
-                          ? 'Please select at least one symptom'
-                          : null,
-                      builder: (state) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Multi-Select Chips
-                          Wrap(
-                            spacing: 8.0,
-                            children: _sicknessTypes.map((type) {
-                              return ChoiceChip(
-                                label: Text(type),
-                                selected: _selectedSicknessTypes.contains(type),
-                                onSelected: (selected) {
-                                  setState(() {
-                                    if (selected) {
-                                      _selectedSicknessTypes.add(type);
-                                    } else {
-                                      _selectedSicknessTypes.remove(type);
-                                    }
-                                    _calculateCost(); // Recalculate cost whenever selection changes
-                                  });
-                                  state.didChange(_selectedSicknessTypes);
-                                },
-                              );
-                            }).toList(),
-                          ),
-                          if (state.hasError)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10, left: 12),
-                              child: Text(
-                                state.errorText!,
-                                style: TextStyle(
-                                    color: Colors.red[700], fontSize: 12),
-                              ),
-                            ),
-
-                          // Custom Sickness Type Input
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _customSicknessController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Add Custom Symptom',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              ElevatedButton(
-                                onPressed: _addCustomSicknessType,
-                                child: const Text('Add'),
-                              ),
-                            ],
-                          ),
-                        ],
+                    DropdownButtonFormField<String>(
+                    value: null, // No initial selection
+                    decoration: InputDecoration(
+                      labelText: 'Select Symptom',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    items: _sicknesses.map((sickness) {
+                      return DropdownMenuItem(
+                        value: sickness.name,
+                        child: Text(sickness.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null && !_selectedSicknessTypes.contains(value)) {
+                        setState(() {
+                          _selectedSicknessTypes.add(value); // Add selected symptom
+                          _calculateCost(); // Recalculate cost
+                        });
+                      }
+                    },
+                    validator: (value) => _selectedSicknessTypes.isEmpty ? 'Please select at least one symptom' : null,
+                  ),
+                  
+                  const SizedBox(height: 16),
+
+
+                // Selected Symptoms Display
+                  _selectedSicknessTypes.isNotEmpty 
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Selected Symptoms:', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: _selectedSicknessTypes.length,
+                              itemBuilder: (context, index) {
+                                return ListTile(
+                                  title: Text(_selectedSicknessTypes[index]),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                    onPressed: () {
+                                      setState(() {
+                                        // Remove the symptom from the selected list
+                                        _selectedSicknessTypes.removeAt(index);
+                                        _calculateCost(); // Update the cost if necessary
+                                      });
+                                    },
+                                  ),
+                               );
+                            },
+                          ),
+                        ],
+                      )
+                      : Container(),
+
+
 
                     // Additional Notes Field
                     TextFormField(
