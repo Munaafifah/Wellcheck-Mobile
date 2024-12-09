@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
 import '../pages/appointment_page.dart';
+import 'dart:convert';
 // For date formatting
 
 class ViewAppointmentsPage extends StatefulWidget {
@@ -110,32 +111,198 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   }
 
   Future<void> _deleteAppointment(String appointmentId) async {
-    try {
-      final token = await _storage.read(key: "auth_token");
-      if (token != null) {
-        await _appointmentService.deleteAppointment(token, appointmentId);
-        _fetchAppointments(); // Refresh the list after deletion
+    // Show a confirmation dialog before deleting
+    bool? confirmDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Deletion"),
+        content:
+            const Text("Are you sure you want to delete this appointment?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    // Only proceed with deletion if user confirms
+    if (confirmDelete == true) {
+      try {
+        final token = await _storage.read(key: "auth_token");
+        if (token != null) {
+          await _appointmentService.deleteAppointment(token, appointmentId);
+          _fetchAppointments(); // Refresh the list after deletion
+
+          // Show a success snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Appointment deleted successfully"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to delete appointment: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to delete appointment: $e")),
-      );
     }
   }
 
-  Future<void> _editAppointment(String appointmentId, String newNotes) async {
-    try {
-      final token = await _storage.read(key: "auth_token");
-      if (token != null) {
-        await _appointmentService.updateAppointment(
-            token, appointmentId, newNotes);
-        _fetchAppointments(); // Refresh the list after update
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to update appointment: $e")),
-      );
-    }
+  Future<void> _editAppointment(Appointment appointment) async {
+    // Create controllers for each editable field
+    TextEditingController dateController = TextEditingController(
+      text: appointment.getFormattedDate(),
+    );
+    TextEditingController timeController = TextEditingController(
+      text: appointment.getFormattedTime(),
+    );
+    TextEditingController durationController = TextEditingController(
+      text: appointment.duration.toString(),
+    );
+    TextEditingController typeOfSicknessController = TextEditingController(
+      text: appointment.typeOfSickness,
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Edit Appointment"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Date Input
+              TextField(
+                controller: dateController,
+                decoration: const InputDecoration(
+                  labelText: "Date",
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: appointment.appointmentDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+
+                  if (pickedDate != null) {
+                    dateController.text =
+                        "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+                  }
+                },
+              ),
+
+              // Time Input
+              TextField(
+                controller: timeController,
+                decoration: const InputDecoration(
+                  labelText: "Time",
+                  prefixIcon: Icon(Icons.access_time),
+                ),
+                readOnly: true,
+                onTap: () async {
+                  TimeOfDay? pickedTime = await showTimePicker(
+                    context: context,
+                    initialTime:
+                        TimeOfDay.fromDateTime(appointment.appointmentDate),
+                  );
+
+                  if (pickedTime != null) {
+                    timeController.text = pickedTime.format(context);
+                  }
+                },
+              ),
+
+              // Duration Input
+              TextField(
+                controller: durationController,
+                decoration: const InputDecoration(
+                  labelText: "Duration (minutes)",
+                  prefixIcon: Icon(Icons.timer),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+
+              // Type of Sickness Input
+              TextField(
+                controller: typeOfSicknessController,
+                decoration: const InputDecoration(
+                  labelText: "Type of Sickness",
+                  prefixIcon: Icon(Icons.medical_services),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                // Validate inputs
+                if (dateController.text.isEmpty ||
+                    timeController.text.isEmpty ||
+                    durationController.text.isEmpty ||
+                    typeOfSicknessController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("All fields are required")),
+                  );
+                  return;
+                }
+
+                // Parse date and time
+                DateTime parsedDateTime = DateTime.parse(
+                    "${dateController.text} ${timeController.text}:00");
+
+                int parsedDuration = int.parse(durationController.text);
+
+                // Prepare update payload
+                Map<String, dynamic> updateData = {
+                  'appointmentDate': parsedDateTime.toIso8601String(),
+                  'duration': parsedDuration,
+                  'typeOfSickness': typeOfSicknessController.text,
+                };
+
+                // Get authentication token
+                final token = await _storage.read(key: "auth_token");
+                if (token != null) {
+                  // Call service method to update appointment
+                  await _appointmentService.updateAppointment(token,
+                      appointment.appointmentId, json.encode(updateData));
+
+                  // Refresh appointments
+                  _fetchAppointments();
+
+                  // Close dialog
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Failed to update appointment: $e")),
+                );
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
   }
 
   List<Appointment> _getPaginatedAppointments() {
@@ -262,35 +429,12 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             ),
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.orange),
-              onPressed: () {
-                TextEditingController controller =
-                    TextEditingController(text: appointment.additionalNotes);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text("Edit Notes"),
-                    content: TextField(
-                      controller: controller,
-                      decoration: const InputDecoration(labelText: "Notes"),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          _editAppointment(
-                              appointment.appointmentId, controller.text);
-                          Navigator.pop(context);
-                        },
-                        child: const Text("Save"),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              onPressed: () => _editAppointment(appointment),
             ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteAppointment(appointment.appointmentId),
-            ),
+            )
           ],
         ),
       ),
