@@ -5,6 +5,8 @@ import 'sickness_service.dart';
 import '../models/sickness_model.dart'; // Ensure the correct import path
 
 class SicknessList extends StatefulWidget {
+  const SicknessList({super.key});
+
   @override
   _SicknessListState createState() => _SicknessListState();
 }
@@ -25,7 +27,8 @@ class SicknessService {
 }
 
 class _SicknessListState extends State<SicknessList> {
-  final SicknessService _sicknessService = SicknessService(); // Instance of your service
+  final SicknessService _sicknessService =
+      SicknessService(); // Instance of your service
   List<Sickness> _sicknesses = [];
   bool _isLoading = true;
 
@@ -51,7 +54,7 @@ class _SicknessListState extends State<SicknessList> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     return ListView.builder(
@@ -60,7 +63,8 @@ class _SicknessListState extends State<SicknessList> {
         final sickness = _sicknesses[index];
         return ListTile(
           title: Text(sickness.name),
-          subtitle: Text('Price: RM${sickness.appointmentPrice.toStringAsFixed(2)}'),
+          subtitle:
+              Text('Price: RM${sickness.appointmentPrice.toStringAsFixed(2)}'),
         );
       },
     );

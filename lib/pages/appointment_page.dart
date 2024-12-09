@@ -24,7 +24,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final SicknessService _sicknessService = SicknessService(); // Instance of your service
+  final SicknessService _sicknessService =
+      SicknessService(); // Instance of your service
   List<Sickness> _sicknesses = []; // List to hold fetched sickness types
 
   bool _isLoading = false;
@@ -33,10 +34,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
   String? _selectedDuration;
   //String? _typeOfSickness;
   double _appointmentCost = 0.0;
-  
-  final List<String> _selectedSicknessTypes = [];
 
-  
+  final List<String> _selectedSicknessTypes = [];
 
   @override
   void dispose() {
@@ -49,18 +48,21 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   void _calculateCost() {
-  setState(() {
-    _appointmentCost = 0.0; // Reset before recalculating
-    for (String sicknessName in _selectedSicknessTypes) {
-      // Find the corresponding sickness object
-      final sickness = _sicknesses.firstWhere(
-        (s) => s.name == sicknessName,
-        orElse: () => Sickness(appointmentId: '', name: '', appointmentPrice: 0.0), // Default if not found
-      );
-      _appointmentCost += sickness.appointmentPrice; // Add to cost
-    }
-  });
-}
+    setState(() {
+      _appointmentCost = 0.0; // Reset before recalculating
+      for (String sicknessName in _selectedSicknessTypes) {
+        // Find the corresponding sickness object
+        final sickness = _sicknesses.firstWhere(
+          (s) => s.name == sicknessName,
+          orElse: () => Sickness(
+              appointmentId: '',
+              name: '',
+              appointmentPrice: 0.0), // Default if not found
+        );
+        _appointmentCost += sickness.appointmentPrice; // Add to cost
+      }
+    });
+  }
 
   // void _addCustomSicknessType() {
   //   final customType = _customSicknessController.text.trim();
@@ -146,11 +148,11 @@ class _AppointmentPageState extends State<AppointmentPage> {
       setState(() {});
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load sickness types: ${e.toString()}')),
+        SnackBar(
+            content: Text('Failed to load sickness types: ${e.toString()}')),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -297,64 +299,69 @@ class _AppointmentPageState extends State<AppointmentPage> {
 
                     // Type of Sickness Multi-Select
                     DropdownButtonFormField<String>(
-                    value: null, // No initial selection
-                    decoration: InputDecoration(
-                      labelText: 'Select Symptom',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      value: null, // No initial selection
+                      decoration: InputDecoration(
+                        labelText: 'Select Symptom',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
+                      items: _sicknesses.map((sickness) {
+                        return DropdownMenuItem(
+                          value: sickness.name,
+                          child: Text(sickness.name),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null &&
+                            !_selectedSicknessTypes.contains(value)) {
+                          setState(() {
+                            _selectedSicknessTypes
+                                .add(value); // Add selected symptom
+                            _calculateCost(); // Recalculate cost
+                          });
+                        }
+                      },
+                      validator: (value) => _selectedSicknessTypes.isEmpty
+                          ? 'Please select at least one symptom'
+                          : null,
                     ),
-                    items: _sicknesses.map((sickness) {
-                      return DropdownMenuItem(
-                        value: sickness.name,
-                        child: Text(sickness.name),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null && !_selectedSicknessTypes.contains(value)) {
-                        setState(() {
-                          _selectedSicknessTypes.add(value); // Add selected symptom
-                          _calculateCost(); // Recalculate cost
-                        });
-                      }
-                    },
-                    validator: (value) => _selectedSicknessTypes.isEmpty ? 'Please select at least one symptom' : null,
-                  ),
-                  
-                  const SizedBox(height: 16),
 
+                    const SizedBox(height: 16),
 
-                // Selected Symptoms Display
-                  _selectedSicknessTypes.isNotEmpty 
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Selected Symptoms:', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: _selectedSicknessTypes.length,
-                              itemBuilder: (context, index) {
-                                return ListTile(
-                                  title: Text(_selectedSicknessTypes[index]),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                    onPressed: () {
-                                      setState(() {
-                                        // Remove the symptom from the selected list
-                                        _selectedSicknessTypes.removeAt(index);
-                                        _calculateCost(); // Update the cost if necessary
-                                      });
-                                    },
-                                  ),
-                               );
-                            },
-                          ),
-                        ],
-                      )
-                      : Container(),
-
-
+                    // Selected Symptoms Display
+                    _selectedSicknessTypes.isNotEmpty
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Selected Symptoms:',
+                                  style: theme.textTheme.bodyLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold)),
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _selectedSicknessTypes.length,
+                                itemBuilder: (context, index) {
+                                  return ListTile(
+                                    title: Text(_selectedSicknessTypes[index]),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.remove_circle,
+                                          color: Colors.red),
+                                      onPressed: () {
+                                        setState(() {
+                                          // Remove the symptom from the selected list
+                                          _selectedSicknessTypes
+                                              .removeAt(index);
+                                          _calculateCost(); // Update the cost if necessary
+                                        });
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          )
+                        : Container(),
 
                     // Additional Notes Field
                     TextFormField(

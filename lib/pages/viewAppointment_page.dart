@@ -352,9 +352,9 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Text(
+                const Text(
                   "Status: ",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   appointment.statusAppointment, // Dynamically show the status
