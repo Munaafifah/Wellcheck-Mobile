@@ -33,7 +33,7 @@ dependencies:
   http: ^1.2.2 # You can use the latest version
   flutter_secure_storage: ^7.0.0 # For secure session management
   "uuid": "4.5.1"
-  intl: ^0.18.0 # Use the latest version available
+  intl: ^0.19.0 # Use the latest version available
   dropdown_search: ^5.0.3
   awesome_notifications: ^0.10.0
 
