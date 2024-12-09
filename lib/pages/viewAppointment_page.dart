@@ -7,8 +7,10 @@ import '../pages/appointment_page.dart';
 
 class ViewAppointmentsPage extends StatefulWidget {
   final String userId;
+  final bool showPastAppointments;
 
-  const ViewAppointmentsPage({super.key, required this.userId});
+  const ViewAppointmentsPage(
+      {super.key, required this.userId, this.showPastAppointments = false});
 
   @override
   _ViewAppointmentsPageState createState() => _ViewAppointmentsPageState();
@@ -44,9 +46,21 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
       if (token != null) {
         final appointments =
             await _appointmentService.fetchAppointments(token, widget.userId);
+
+        // Filter for past or upcoming appointments based on widget parameter
+        final filteredAppointments = appointments.where((appointment) {
+          return widget.showPastAppointments
+              ? appointment.appointmentDate.isBefore(DateTime.now())
+              : appointment.appointmentDate.isAfter(DateTime.now());
+        }).toList();
+
+        // Sort appointments by date
+        filteredAppointments
+            .sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
+
         setState(() {
-          _appointments = appointments;
-          _filteredAppointments = appointments;
+          _appointments = filteredAppointments;
+          _filteredAppointments = filteredAppointments;
         });
       } else {
         setState(() {
@@ -287,8 +301,34 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("View Appointments"),
+        title: Text(widget.showPastAppointments
+            ? "Past Appointments"
+            : "Upcoming Appointments"),
         backgroundColor: const Color(0xFF4CAF93),
+        actions: [
+          IconButton(
+            icon: Icon(
+              widget.showPastAppointments
+                  ? Icons.calendar_today // Show upcoming icon when in past view
+                  : Icons.history, // Show history icon when in upcoming view
+              color: Colors.white,
+            ),
+            tooltip: widget.showPastAppointments
+                ? "View Upcoming Appointments"
+                : "View Past Appointments",
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ViewAppointmentsPage(
+                    userId: widget.userId,
+                    showPastAppointments: !widget.showPastAppointments,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
