@@ -35,7 +35,7 @@ dependencies:
   "uuid": "4.5.1"
   intl: ^0.18.0 # Use the latest version available
   dropdown_search: ^5.0.3
-
+  awesome_notifications: ^0.10.0
 
 
 
