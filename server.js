@@ -134,6 +134,47 @@ app.get("/prescriptions/:userId", async (req, res) => {
   
   const { v4: uuidv4 } = require("uuid"); // Add this for unique ID generation
 
+  app.get("/predictions/:userId", async (req, res) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+  
+      // Verify the token
+      jwt.verify(token, secretKey, async (err, decoded) => {
+        if (err) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+  
+        const userId = req.params.userId;
+        await client.connect();
+        const patients = client.db("Wellcheck2").collection("Patient");
+  
+        // Fetch the patient document
+        const patientDoc = await patients.findOne({ _id: userId });
+        if (!patientDoc || !patientDoc[userId]) {
+          return res.status(404).json({ error: "Patient not found" });
+        }
+  
+        const patient = patientDoc[userId];
+        // Access predictions data in the patient document
+        if (!patient.Prediction || Object.keys(patient.Prediction).length === 0) {
+          return res
+            .status(404)
+            .json({ error: "No predictions found for this patient" });
+        }
+  
+        // Return all predictions as an array
+        const predictions = Object.values(patient.Prediction);
+        res.json(predictions);
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/add-symptom", async (req, res) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];
