@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'sickness_service.dart';
 import '../models/sickness_model.dart'; // Ensure the correct import path
 
 class SicknessList extends StatefulWidget {

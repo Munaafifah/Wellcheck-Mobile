@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
-import '../models/appointment_model.dart';
 import '../services/sickness_service.dart';
 import '../models/sickness_model.dart';
 // For date formatting
