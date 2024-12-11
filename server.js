@@ -175,6 +175,93 @@ app.get("/prescriptions/:userId", async (req, res) => {
     }
   });
 
+  app.get("/healthstatus/:userId", async (req, res) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+  
+      jwt.verify(token, secretKey, async (err, decoded) => {
+        if (err) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+  
+        const userId = req.params.userId;
+        await client.connect();
+        const patients = client.db("Wellcheck2").collection("Patient");
+  
+        const patientDoc = await patients.findOne({ _id: userId });
+        if (!patientDoc || !patientDoc[userId]) {
+          return res.status(404).json({ error: "Patient not found" });
+        }
+  
+        const patient = patientDoc[userId];
+        // Changed from Healthstatus to HealthStatus
+        if (!patient.HealthStatus || Object.keys(patient.HealthStatus).length === 0) {
+          return res
+            .status(404)
+            .json({ error: "No healthstatus found for this patient" });
+        }
+  
+        // Changed from Healthstatus to HealthStatus
+        const healthstatusList = Object.values(patient.HealthStatus);
+        res.json(healthstatusList);
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // server.js
+  app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
+    try {
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+  
+      jwt.verify(token, secretKey, async (err, decoded) => {
+        if (err) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+  
+        const userId = req.params.userId;
+        const healthStatusId = req.params.healthStatusId;
+  
+        await client.connect();
+        const patients = client.db("Wellcheck2").collection("Patient");
+  
+        const patientDoc = await patients.findOne({ _id: userId });
+        if (!patientDoc || !patientDoc[userId]) {
+          return res.status(404).json({ error: "Patient not found" });
+        }
+  
+        const patient = patientDoc[userId];
+        if (!patient.HealthStatus || !patient.HealthStatus[healthStatusId]) {
+          return res
+            .status(404)
+            .json({ error: "Health status entry not found" });
+        }
+  
+        // Remove the health status entry from the HealthStatus object
+        delete patient.HealthStatus[healthStatusId];
+  
+        // Update the patient document with the modified HealthStatus
+        await patients.updateOne(
+          { _id: userId },
+          { $set: { [userId]: patient } }
+        );
+  
+        res.json({ message: "Health status entry deleted" });
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/add-symptom", async (req, res) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];

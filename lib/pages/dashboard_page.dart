@@ -6,6 +6,7 @@ import '../models/dashboard_model.dart';
 import 'prescription_page.dart';
 import 'symptom_page.dart';
 import 'prediction_page.dart';
+import 'Healthstatus_page.dart';
 import '../pages/viewAppointment_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -214,13 +215,13 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         const SizedBox(height: 10),
         _buildActionButton(
-          "View Symptoms",
+          "View Health Status",
           Icons.visibility_outlined,
           () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PredictionPage(userId: widget.userId),
+                builder: (context) => HealthstatusPage(userId: widget.userId),
               ),
             );
           },
