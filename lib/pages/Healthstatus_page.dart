@@ -20,6 +20,8 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
   List<HealthstatusModel>? _filteredHealthstatus;
   bool _hasError = false;
   String _searchQuery = '';
+  int _currentPage = 1;
+  int _itemsPerPage = 5; // Set the number of items to display per page
 
   @override
   void initState() {
@@ -78,8 +80,25 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
     }
   }
 
+  void _goToPage(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+  }
+
+  int _getTotalPages() {
+    if (_filteredHealthstatus == null || _filteredHealthstatus!.isEmpty) {
+      return 1;
+    }
+    return (_filteredHealthstatus!.length / _itemsPerPage).ceil();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+    final visibleHealthstatus = _filteredHealthstatus?.sublist(
+        startIndex, endIndex.clamp(0, _filteredHealthstatus!.length));
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -120,8 +139,76 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
                                     color: Colors.white, fontSize: 16),
                               ),
                             )
-                          : _buildHealthstatusList(),
+                          : _buildHealthstatusList(visibleHealthstatus),
             ),
+            if (_getTotalPages() > 1)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_currentPage > 1)
+                      InkWell(
+                        onTap: () => _goToPage(_currentPage - 1),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 16),
+                    for (int i = 1; i <= _getTotalPages(); i++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: InkWell(
+                          onTap: () => _goToPage(i),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: i == _currentPage
+                                  ? const Color(0xFF379B7E)
+                                  : Colors.white.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              i.toString(),
+                              style: TextStyle(
+                                color: i == _currentPage
+                                    ? Colors.black
+                                    : Colors.grey[700],
+                                fontWeight: i == _currentPage
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 16),
+                    if (_currentPage < _getTotalPages())
+                      InkWell(
+                        onTap: () => _goToPage(_currentPage + 1),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -188,7 +275,7 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
     );
   }
 
-  Widget _buildHealthstatusList() {
+  Widget _buildHealthstatusList(List<HealthstatusModel>? visibleHealthstatus) {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -199,9 +286,9 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
       ),
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: _filteredHealthstatus!.length,
+        itemCount: visibleHealthstatus?.length ?? 0,
         itemBuilder: (context, index) {
-          final healthstatus = _filteredHealthstatus![index];
+          final healthstatus = visibleHealthstatus![index];
           return _buildHealthstatusCard(healthstatus);
         },
       ),
