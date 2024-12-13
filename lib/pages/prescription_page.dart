@@ -18,6 +18,8 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
   List<Prescription>? _prescriptions;
   List<Prescription>? _filteredPrescriptions;
   String _selectedMonth = "";
+  String _selectedYear = "";
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -33,7 +35,7 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
             await _prescriptionService.fetchPrescriptions(widget.userId, token);
         setState(() {
           _prescriptions = prescriptions;
-          _applyFilter(); // Apply the filter immediately after fetching
+          _applyFilter();
         });
       } catch (e) {
         setState(() {
@@ -48,24 +50,45 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
     }
   }
 
- void _applyFilter() {
-  if (_selectedMonth.isEmpty) {
-    // Show all prescriptions if "All" is selected
+  void _applyFilter() {
     _filteredPrescriptions = _prescriptions;
-  } else {
-    // Filter prescriptions by the selected month
-    _filteredPrescriptions = _prescriptions?.where((prescription) {
-      final prescriptionDate = prescription.timestamp.toLocal();
-      final month = prescriptionDate.month.toString().padLeft(2, '0'); // Ensure month is 2 digits (e.g., "01" for January)
-      return month == _selectedMonth;
-    }).toList();
-  }
-}
 
+    if (_selectedYear.isNotEmpty) {
+      _filteredPrescriptions = _filteredPrescriptions?.where((prescription) {
+        final prescriptionDate = prescription.timestamp.toLocal();
+        return prescriptionDate.year.toString() == _selectedYear;
+      }).toList();
+    }
+
+    if (_selectedMonth.isNotEmpty) {
+      _filteredPrescriptions = _filteredPrescriptions?.where((prescription) {
+        final prescriptionDate = prescription.timestamp.toLocal();
+        final month = prescriptionDate.month.toString().padLeft(2, '0');
+        return month == _selectedMonth;
+      }).toList();
+    }
+
+    _currentPage = 0; // Reset to the first page
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF4CAF93),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text(
+          "View Prescriptions",
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
+      ),
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
@@ -81,10 +104,8 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
         ),
         child: Column(
           children: [
-            const SizedBox(height: 80),
-            _buildHeader(context),
             const SizedBox(height: 10),
-            _buildFilterDropdown(),
+            _buildFilterDropdowns(),
             Expanded(
               child: _filteredPrescriptions == null
                   ? const Center(
@@ -92,7 +113,17 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
                         color: Colors.white,
                       ),
                     )
-                  : _buildPrescriptionList(),
+                  : _filteredPrescriptions!.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No prescription found for the selected filter",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                          ),
+                        )
+                      : _buildPrescriptionPager(),
             ),
           ],
         ),
@@ -101,39 +132,79 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    return AppBar(
+      backgroundColor: const Color(0xFF4CAF93),
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.black),
+        onPressed: () {
+          Navigator.pop(context);
+        },
+      ),
+      title: const Text(
+        "View Prescriptions",
+        style: TextStyle(color: Colors.black),
+      ),
+      centerTitle: true,
+    );
+  }
+
+  Widget _buildFilterDropdowns() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-              const Expanded(
-                child: Text(
-                  "Prescriptions",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 48),
-            ],
+          // Month Dropdown
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedMonth.isEmpty ? null : _selectedMonth,
+              hint: const Text("Month", style: TextStyle(color: Colors.black)),
+              items: [
+                const DropdownMenuItem(value: "", child: Text("All Months")),
+                ...List.generate(12, (index) {
+                  final month = (index + 1).toString().padLeft(2, '0');
+                  return DropdownMenuItem(
+                    value: month,
+                    child: Text(
+                      _monthName(index + 1),
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                  );
+                }),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedMonth = value ?? "";
+                  _applyFilter();
+                });
+              },
+              decoration: _dropdownDecoration("Filter by Month"),
+            ),
           ),
-          const SizedBox(height: 10),
-          const Text(
-            "View your medical prescriptions here",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
+          const SizedBox(width: 8),
+          // Year Dropdown
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedYear.isEmpty ? null : _selectedYear,
+              hint: const Text("Year", style: TextStyle(color: Colors.black)),
+              items: [
+                const DropdownMenuItem(value: "", child: Text("All Years")),
+                ..._getUniqueYears().map((year) {
+                  return DropdownMenuItem(
+                    value: year,
+                    child:
+                        Text(year, style: const TextStyle(color: Colors.black)),
+                  );
+                }),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedYear = value ?? "";
+                  _applyFilter();
+                });
+              },
+              decoration: _dropdownDecoration("Filter by Year"),
             ),
           ),
         ],
@@ -141,74 +212,54 @@ class _PrescriptionPageState extends State<PrescriptionPage> {
     );
   }
 
-  Widget _buildFilterDropdown() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    child: DropdownButtonFormField<String>(
-      value: _selectedMonth.isEmpty ? null : _selectedMonth,
-      hint: const Text("All", style: TextStyle(color: Colors.black)),
-      items: [
-        const DropdownMenuItem(value: "", child: Text("All")),
-        ...List.generate(12, (index) {
-          final month = (index + 1).toString().padLeft(2, '0'); // Ensure month is 2 digits
-          return DropdownMenuItem(
-            value: month,
-            child: Text(
-              _monthName(index + 1),
-              style: const TextStyle(color: Colors.black),
-            ),
-          );
-        }),
-      ],
-      onChanged: (value) {
-        setState(() {
-          _selectedMonth = value ?? "";
-          _applyFilter();
-        });
-      },
-      decoration: InputDecoration(
-        labelText: "Filter by Month",
-        labelStyle: const TextStyle(color: Color.fromARGB(255, 137, 87, 146)),
-        filled: true,
-        fillColor: Colors.white, // Background color
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color.fromARGB(255, 186, 151, 192)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color.fromARGB(255, 186, 151, 192)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color:Color.fromARGB(255, 186, 151, 192)),
-        ),
+  InputDecoration _dropdownDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Color.fromARGB(255, 137, 87, 146)),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color.fromARGB(255, 186, 151, 192)),
       ),
-      dropdownColor: Colors.grey.shade200, // Dropdown menu background
-    ),
-  );
-}
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color.fromARGB(255, 186, 151, 192)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color.fromARGB(255, 186, 151, 192)),
+      ),
+    );
+  }
 
-String _monthName(int month) {
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-  ];
-  return monthNames[month - 1];
-}
+  List<String> _getUniqueYears() {
+    if (_prescriptions == null) return [];
+    final years =
+        _prescriptions!.map((p) => p.timestamp.year.toString()).toSet();
+    return years.toList()..sort();
+  }
 
+  String _monthName(int month) {
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ];
+    return monthNames[month - 1];
+  }
 
-  Widget _buildPrescriptionList() {
+  Widget _buildPrescriptionPager() {
+    final prescription = _filteredPrescriptions![_currentPage];
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -217,13 +268,79 @@ String _monthName(int month) {
           topRight: Radius.circular(60),
         ),
       ),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: _filteredPrescriptions!.length,
-        itemBuilder: (context, index) {
-          final prescription = _filteredPrescriptions![index];
-          return _buildPrescriptionCard(prescription);
-        },
+      child: Column(
+        children: [
+          Expanded(child: _buildPrescriptionCard(prescription)),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Color(0xFF4CAF93)),
+                  onPressed: _currentPage > 0
+                      ? () {
+                          setState(() {
+                            _currentPage--;
+                          });
+                        }
+                      : null,
+                ),
+                Text(
+                  "Page ${_currentPage + 1} of ${_filteredPrescriptions!.length}",
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon:
+                      const Icon(Icons.arrow_forward, color: Color(0xFF4CAF93)),
+                  onPressed: _currentPage < _filteredPrescriptions!.length - 1
+                      ? () {
+                          setState(() {
+                            _currentPage++;
+                          });
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_filteredPrescriptions!.length, (index) {
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      borderRadius:
+                          BorderRadius.circular(12), // Adds rounded corners
+                      color: _currentPage == index
+                          ? const Color(0xFF4CAF93) // Active page color
+                          : Colors.grey.shade300, // Inactive page color
+                    ),
+                    child: Text(
+                      "${index + 1}",
+                      style: TextStyle(
+                        color:
+                            _currentPage == index ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -231,135 +348,154 @@ String _monthName(int month) {
   Widget _buildPrescriptionCard(Prescription prescription) {
     return Card(
       elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Prescription ID: ${prescription.prescriptionId}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Color(0xFF4CAF93),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove_red_eye, color: Colors.blue),
-                  onPressed: () {
-                    _showPrescriptionDetails(context, prescription);
-                  },
-                ),
-              ],
+            const Text(
+              "Doctor's Prescriptions & Diagnosis Ailments",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Color(0xFF4CAF93), // Dark green
+              ),
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow(
-                "Diagnosis", prescription.diagnosisAilmentDescription),
-            _buildDetailRow(
-                "Description", prescription.prescriptionDescription),
-            _buildDetailRow(
-              "Date",
+            const SizedBox(height: 16),
+            _buildSingleFieldTable(
+              "Time of Prescription",
               "${prescription.timestamp.toLocal()}".split(' ')[0],
             ),
+            const SizedBox(height: 10),
+            _buildSingleFieldTable(
+              "Prescription",
+              prescription.prescriptionDescription,
+            ),
+            const SizedBox(height: 10),
+            _buildSingleFieldTable(
+              "Diagnosis Ailment",
+              prescription.diagnosisAilmentDescription,
+            ),
+            const SizedBox(height: 10),
+            _buildMedicineTable(prescription),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "$title: ",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.grey)),
-          ),
-        ],
+  Widget _buildSingleFieldTable(String title, String value) {
+    return Table(
+      border: TableBorder.all(
+        color: Colors.black,
+        width: 1,
+        //borderRadius: BorderRadius.circular(10),
       ),
-    );
-  }
-
-  void _showPrescriptionDetails(
-      BuildContext context, Prescription prescription) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text(
-          "Prescription Details - ID: ${prescription.prescriptionId}",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: SingleChildScrollView(
-          child: Table(
-            columnWidths: const {
-              0: IntrinsicColumnWidth(),
-              1: FlexColumnWidth(),
-            },
-            border: TableBorder.all(
-              color: Colors.black, // Table border color
-              width: 1,
-            ),
-            children: [
-              _buildTableRow(
-                  "Diagnosis", prescription.diagnosisAilmentDescription),
-              _buildTableRow("Doctor ID", prescription.doctorId),
-              _buildTableRow("Medicines", prescription.medicineList.join(", ")),
-              _buildTableRow(
-                  "Description", prescription.prescriptionDescription),
-              _buildTableRow(
-                  "Date", "${prescription.timestamp.toLocal()}".split(' ')[0]),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  TableRow _buildTableRow(String title, String value) {
-    return TableRow(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F8E9), // Light green background for rows
-        borderRadius: BorderRadius.circular(15), // Smooth rounded edges
-      ),
+      columnWidths: const {
+        0: FlexColumnWidth(1.3),
+        1: FlexColumnWidth(1),
+      },
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          child: Text(
-            "$title:",
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF4CAF93),
-              fontSize: 16,
+        TableRow(
+          decoration: const BoxDecoration(
+            color: Color(0xFF4CAF93), // Light green for contrast
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          child: Text(
-            value,
-            style: const TextStyle(color: Colors.black, fontSize: 16),
-          ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  
+  Widget _buildMedicineTable(Prescription prescription) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Medicine List",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Color(0xFF4CAF93),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Table(
+          border: TableBorder.all(color: Colors.black, width: 1),
+          columnWidths: const {
+            0: FlexColumnWidth(1),
+            1: FlexColumnWidth(3),
+            2: FlexColumnWidth(2),
+          },
+          children: [
+            const TableRow(
+              decoration: BoxDecoration(color: Color(0xFF4CAF93)),
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("No",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("Medicine",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("Time",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ],
+            ),
+            ...List.generate(prescription.medicineList.length, (index) {
+              return TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text("${index + 1}"),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(prescription.medicineList[index]),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                        "${prescription.timestamp.toLocal()}".split(' ')[0]),
+                  ),
+                ],
+              );
+            }),
+          ],
+        ),
+      ],
+    );
+  }
 }
