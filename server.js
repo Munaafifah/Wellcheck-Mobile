@@ -424,40 +424,45 @@ app.get("/prescriptions/:userId", async (req, res) => {
 });
 
 
-  app.get("/appointments/:userId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-  
-      // Verify the token
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const userId = req.params.userId;
-  
-        // Fetch appointments for the user
-        try {
-          await client.connect();
-          const appointments = client.db("Wellcheck2").collection("appointments");
-          const userAppointments = await appointments.find({ userId }).toArray();
-  
-          res.json(userAppointments);
-        } catch (dbError) {
-          console.error("Database Error:", dbError);
-          res.status(500).json({ error: "Failed to fetch appointments" });
-        } finally {
-          await client.close(); // Ensure database connection is closed
-        }
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      res.status(500).json({ error: "Internal server error" });
+app.get("/appointments/:userId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
+
+    // Verify the token
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const userId = req.params.userId;
+      await client.connect();
+      const patients = client.db("Wellcheck2").collection("Patient");
+
+      // Fetch the patient document
+      const patientDoc = await patients.findOne({ _id: userId });
+      if (!patientDoc) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      // Access the nested patient data
+      const patient = patientDoc[userId]; 
+      if (!patient || !patient.assigned_doctor || Object.keys(patient.assigned_doctor).length === 0) {
+        return res.status(404).json({ error: "No appointments found for this patient." });
+      }
+
+      // Return all appointments as an array
+      const appointments = Object.values(patient.assigned_doctor);
+      res.json(appointments);
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
   
   // Endpoint for adding a new appointment
   app.post("/appointments", async (req, res) => {
