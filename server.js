@@ -287,7 +287,12 @@ app.get("/prescriptions/:userId", async (req, res) => {
           return res.status(404).json({ error: "Patient not found" });
         }
   
-        const doctorId = patient.assigned_doctor;
+        // Access the assigned_doctor field
+        const doctorId = patient[userId]?.assigned_doctor;
+  
+        if (!doctorId) {
+          return res.status(404).json({ error: "Assigned doctor not found" });
+        }
   
         // Generate unique symptomId
         const symptomId = uuidv4();
@@ -309,6 +314,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  
 
 
 
