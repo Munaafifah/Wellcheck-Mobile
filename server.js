@@ -287,12 +287,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
           return res.status(404).json({ error: "Patient not found" });
         }
   
-        // Access the assigned_doctor field
-        const doctorId = patient[userId]?.assigned_doctor;
-
-        if (!doctorId) {
-          return res.status(404).json({ error: "Assigned doctor not found" });
-        }
+        const doctorId = patient.assigned_doctor;
   
         // Generate unique symptomId
         const symptomId = uuidv4();
@@ -527,12 +522,7 @@ app.get("/appointments/:userId", async (req, res) => {
         }
   
         const appointmentId = uuidv4();
-        // Access the assigned_doctor field
-        const doctorId = patient[userId]?.assigned_doctor;
-  
-        if (!doctorId) {
-          return res.status(404).json({ error: "Assigned doctor not found" });
-        }
+        const doctorId = patient.assigned_doctor;
   
         // Check for duplicate appointment
         const appointments = client.db("Wellcheck2").collection("appointments");
