@@ -163,9 +163,9 @@ class _PredictionPageState extends State<PredictionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               "Symptoms List:",
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
                 color: Color(0xFF4CAF93),
