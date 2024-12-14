@@ -334,25 +334,6 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     }
   }
 
-  // Helper method to create consistent table rows
-  TableRow _buildTableRow(String label, String value) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(value),
-        ),
-      ],
-    );
-  }
-
   Widget buildAppointmentCard(Appointment appointment) {
     return Card(
       elevation: 4,
@@ -403,76 +384,36 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                   builder: (context) => AlertDialog(
                     title: Text("Appointment - ${appointment.typeOfSickness}"),
                     content: SingleChildScrollView(
-                      child: Table(
-                        columnWidths: {
-                          0: FlexColumnWidth(1),
-                          1: FlexColumnWidth(2),
-                        },
-                        border: TableBorder.all(color: Colors.grey.shade300),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Appointment Status
-                          TableRow(
-                            decoration:
-                                BoxDecoration(color: Colors.grey.shade100),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  "Status",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  appointment.statusAppointment,
-                                  style: TextStyle(
-                                    color: appointment.statusAppointment ==
-                                            "Approved"
-                                        ? Colors.green
-                                        : Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Date and Time Information
-                          if (appointment.appointmentDate != null) ...[
-                            _buildTableRow(
-                                "Date", appointment.getFormattedDate()),
-                            _buildTableRow(
-                                "Time", appointment.getFormattedTime()),
-                            _buildTableRow(
-                                "Duration", "${appointment.duration} mins"),
-                          ],
-
-                          // Medical Information
-                          if (appointment.typeOfSickness.isNotEmpty)
-                            _buildTableRow(
-                                "Type of Sickness", appointment.typeOfSickness),
-
-                          // Additional Notes
-                          if (appointment.additionalNotes != null &&
-                              appointment.additionalNotes!.isNotEmpty)
-                            _buildTableRow("Additional Notes",
-                                appointment.additionalNotes!),
-
-                          // Contact Information
-                          if (appointment.email.isNotEmpty)
-                            _buildTableRow("Email", appointment.email),
-
-                          // Identifiers
-                          if (appointment.doctorId.isNotEmpty)
-                            _buildTableRow("Doctor ID", appointment.doctorId),
-
-                          if (appointment.userId.isNotEmpty)
-                            _buildTableRow("User ID", appointment.userId),
-
-                          // Cost
-                          _buildTableRow("Cost",
-                              "RM${appointment.appointmentCost.toStringAsFixed(2)}"),
+                          const Text("General Information",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text("Date: ${appointment.getFormattedDate()}"),
+                          Text("Time: ${appointment.getFormattedTime()}"),
+                          Text("Duration: ${appointment.duration} mins"),
+                          const SizedBox(height: 16),
+                          const Text("Details",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text(
+                              "Type of Sickness: ${appointment.typeOfSickness}"),
+                          Text(
+                              "Additional Notes: ${appointment.additionalNotes}"),
+                          const SizedBox(height: 16),
+                          const Text("Contact Information",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text("Email: ${appointment.email}"),
+                          const SizedBox(height: 16),
+                          const Text("Identifiers & Cost",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text("Doctor ID: ${appointment.doctorId}"),
+                          Text("User ID: ${appointment.userId}"),
+                          Text(
+                              "Cost: RM${appointment.appointmentCost.toStringAsFixed(2)}"),
                         ],
                       ),
                     ),
