@@ -438,145 +438,145 @@ app.get("/appointments/:userId", async (req, res) => {
       }
 
       const userId = req.params.userId;
-      await client.connect();
-      const patients = client.db("Wellcheck2").collection("Patient");
 
-      // Fetch the patient document
-      const patientDoc = await patients.findOne({ _id: userId });
-      if (!patientDoc) {
-        return res.status(404).json({ error: "Patient not found" });
+      // Fetch appointments for the user
+      try {
+        await client.connect();
+        const appointments = client.db("Wellcheck2").collection("appointments");
+        const userAppointments = await appointments.find({ userId }).toArray();
+
+        res.json(userAppointments);
+      } catch (dbError) {
+        console.error("Database Error:", dbError);
+        res.status(500).json({ error: "Failed to fetch appointments" });
+      } finally {
+        await client.close(); // Ensure database connection is closed
       }
-
-      // Access the nested patient data
-      const patient = patientDoc[userId]; 
-      if (!patient || !patient.assigned_doctor || Object.keys(patient.assigned_doctor).length === 0) {
-        return res.status(404).json({ error: "No appointments found for this patient." });
-      }
-
-      // Return all appointments as an array
-      const appointments = Object.values(patient.assigned_doctor);
-      res.json(appointments);
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-  
-  // Endpoint for adding a new appointment
-  app.post("/appointments", async (req, res) => {
+// Endpoint for adding a new appointment
+app.post("/appointments", async (req, res) => {
+  try {
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify JWT
+    let decoded;
     try {
-      // Extract token from Authorization header
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+      decoded = jwt.verify(token, secretKey);
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    // Extract data from request body
+    const {
+      appointmentDate,
+      appointmentTime,
+      duration,
+      typeOfSickness,
+      additionalNotes,
+      email,
+      appointmentCost, // New field for cost
+      statusPayment = "Not Paid",
+      statusAppointment = "Not Approved",
+    } = req.body;
+    const userId = decoded.userId; // Assuming userId is in the JWT payload
+
+    // Validate required fields
+    if (
+      !appointmentDate ||
+      !appointmentTime ||
+      !duration ||
+      !typeOfSickness ||
+      !email ||
+      !statusAppointment ||
+      appointmentCost == null 
+      
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+      await client.connect();
+      console.log("Connected to MongoDB");
+
+      // Fetch patient details
+      const patients = client.db("Wellcheck").collection("patients");
+      const patient = await patients.findOne({ _id: userId });
+
+      if (!patient) {
+        return res.status(404).json({ error: "Patient not found" });
       }
+
+      const appointmentId = uuidv4();
+      // Access the assigned_doctor field
+      const doctorId = patient[userId]?.assigned_doctor;
   
-      // Verify JWT
-      let decoded;
-      try {
-        decoded = jwt.verify(token, secretKey);
-      } catch (err) {
-        return res.status(401).json({ error: "Invalid token" });
+      if (!doctorId) {
+        return res.status(404).json({ error: "Assigned doctor not found" });
       }
-  
-      // Extract data from request body
-      const {
+
+      // Check for duplicate appointment
+      const appointments = client.db("Wellcheck2").collection("appointments");
+      const existingAppointment = await appointments.findOne({
+        userId,
+        appointmentDate,
+        appointmentTime,
+      });
+
+      if (existingAppointment) {
+        return res.status(400).json({
+          error: "Appointment already exists for the selected date and time",
+        });
+      }
+
+      // Create a new appointment object
+      const newAppointment = {
+        appointmentId,
+        userId,
+        doctorId,
         appointmentDate,
         appointmentTime,
         duration,
         typeOfSickness,
         additionalNotes,
-        email,
-        appointmentCost, // New field for cost
-        statusPayment = "Not Paid",
-        statusAppointment = "Not Approved",
-      } = req.body;
-      const userId = decoded.userId; // Assuming `userId` is in the JWT payload
-  
-      // Validate required fields
-      if (
-        !appointmentDate ||
-        !appointmentTime ||
-        !duration ||
-        !typeOfSickness ||
-        !email ||
-        !statusAppointment ||
-        appointmentCost == null 
-        
-      ) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-  
-      try {
-        await client.connect();
-        console.log("Connected to MongoDB");
-  
-        // Fetch patient details
-        const patients = client.db("Wellcheck").collection("patients");
-        const patient = await patients.findOne({ _id: userId });
-  
-        if (!patient) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
-  
-        const appointmentId = uuidv4();
-        const doctorId = patient.assigned_doctor;
-  
-        // Check for duplicate appointment
-        const appointments = client.db("Wellcheck2").collection("appointments");
-        const existingAppointment = await appointments.findOne({
-          userId,
-          appointmentDate,
-          appointmentTime,
+        email, // Include email in the appointment object
+        appointmentCost, // Include cost in the appointment object
+        statusPayment,
+        statusAppointment,
+        timestamp: new Date(appointmentDate),
+      };
+
+      // Insert appointment into the database
+      const result = await appointments.insertOne(newAppointment);
+      if (result.acknowledged) {
+        res.status(201).json({
+          message: "Appointment created successfully",
+          appointment: newAppointment,
         });
-  
-        if (existingAppointment) {
-          return res.status(400).json({
-            error: "Appointment already exists for the selected date and time",
-          });
-        }
-  
-        // Create a new appointment object
-        const newAppointment = {
-          appointmentId,
-          userId,
-          doctorId,
-          appointmentDate,
-          appointmentTime,
-          duration,
-          typeOfSickness,
-          additionalNotes,
-          email, // Include email in the appointment object
-          appointmentCost, // Include cost in the appointment object
-          statusPayment,
-          statusAppointment,
-          timestamp: new Date(appointmentDate),
-        };
-  
-        // Insert appointment into the database
-        const result = await appointments.insertOne(newAppointment);
-        if (result.acknowledged) {
-          res.status(201).json({
-            message: "Appointment created successfully",
-            appointment: newAppointment,
-          });
-        } else {
-          res.status(500).json({ error: "Failed to create appointment" });
-        }
-      } catch (mongoError) {
-        console.error("MongoDB Error:", mongoError);
-        res.status(500).json({ error: "Database error occurred" });
-      } finally {
-        await client.close(); // Ensure the client connection is closed
-        console.log("Disconnected from MongoDB");
+      } else {
+        res.status(500).json({ error: "Failed to create appointment" });
       }
-    } catch (error) {
-      console.error("Error:", error);
-      res.status(500).json({ error: "Internal server error" });
+    } catch (mongoError) {
+      console.error("MongoDB Error:", mongoError);
+      res.status(500).json({ error: "Database error occurred" });
+    } finally {
+      await client.close(); // Ensure the client connection is closed
+      console.log("Disconnected from MongoDB");
     }
-  });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
   // Start the server
   app.listen(port, () => {
