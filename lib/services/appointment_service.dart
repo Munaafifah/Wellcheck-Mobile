@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/appointment_model.dart';
@@ -31,8 +32,12 @@ class AppointmentService {
     required String additionalNotes,
     required String email,
     required double appointmentCost,
-    required String statusPayment,
-    required String statusAppointment,
+    String statusPayment = "Not Paid", // Optional parameter
+    String statusAppointment = "Not Approved", // Optional parameter
+    bool isTeleconsultation = false, // New parameter for teleconsultation
+    String? insuranceProvider, // Optional parameter for insurance provider
+    String? insurancePolicyNumber, // Optional parameter for insurance policy number
+    String? preferredLanguage, // Optional parameter for preferred language
   }) async {
     final String formattedTime =
         '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
@@ -53,8 +58,12 @@ class AppointmentService {
       "additionalNotes": additionalNotes,
       "email": email,
       "appointmentCost": appointmentCost,
-      "statusPayment": "Not Paid", // Add payment status if needed
-      "statusAppointment": "Not Approved",
+      "statusPayment": statusPayment,
+      "statusAppointment": statusAppointment,
+      "isTeleconsultation": isTeleconsultation, // Include teleconsultation
+      "insuranceProvider": insuranceProvider, // Include insurance provider
+      "insurancePolicyNumber": insurancePolicyNumber, // Include insurance policy number
+      "preferredLanguage": preferredLanguage, // Include preferred language
     });
 
     // Handle response
@@ -68,8 +77,7 @@ class AppointmentService {
       String token, String userId) async {
     try {
       final response = await http.get(
-        Uri.parse(
-            "$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
+        Uri.parse("$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -90,8 +98,7 @@ class AppointmentService {
   Future<void> updateAppointment(
       String token, String appointmentId, String newNotes) async {
     final response = await http.put(
-      Uri.parse(
-          "$baseUrl/appointments/$appointmentId"), // Endpoint for updating appointments
+      Uri.parse("$baseUrl/appointments/$appointmentId"), // Endpoint for updating appointments
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -107,8 +114,8 @@ class AppointmentService {
   // Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
-      Uri.parse(
-          "$baseUrl/appointments/$appointmentId"), // Endpoint for deleting appointments
+      Uri.parse("$baseUrl/appointments/$appointmentId"), 
+      // Endpoint for
       headers: {
         "Authorization": "Bearer $token",
       },

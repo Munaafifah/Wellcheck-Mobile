@@ -5,20 +5,28 @@ class Appointment {
   final String appointmentId;
   final String userId;
   final String doctorId;
+  final String hospitalId; // Added hospital association
   final DateTime appointmentDate;
   final TimeOfDay appointmentTime;
   final String duration;
-  final String typeOfSickness;
+  final String typeOfSickness; // Made optional for non-medical visits
   final String additionalNotes;
   final String email;
   final double appointmentCost;
   final String statusPayment; // New property for payment status
   final String statusAppointment; // New property for appointment status
+  final List<String>? requiredDocuments; // New: Required documents for appointment
+  final bool isTeleconsultation; // New: Indicates if the appointment is virtual
+  final String? insuranceProvider; // New: Insurance provider info
+  final String? insurancePolicyNumber; // New: Insurance policy number
+  final String? preferredLanguage; // New: Preferred language for consultation
+  final String? visitReason; // New: General reason for the appointment
 
   Appointment({
     required this.appointmentId,
     required this.userId,
     required this.doctorId,
+    required this.hospitalId,
     required this.appointmentDate,
     required this.appointmentTime,
     required this.duration,
@@ -28,6 +36,12 @@ class Appointment {
     required this.appointmentCost,
     this.statusPayment = "Not Paid", // Initialized to "not paid"
     this.statusAppointment = "Not Approved", // Initialized to "scheduled"
+    this.requiredDocuments,
+    this.isTeleconsultation = false, // Default to in-person appointment
+    this.insuranceProvider,
+    this.insurancePolicyNumber,
+    this.preferredLanguage,
+    this.visitReason,
   });
 
   // Convert Appointment object to JSON for API calls
@@ -36,6 +50,7 @@ class Appointment {
       "appointmentId": appointmentId,
       "userId": userId,
       "doctorId": doctorId,
+      "hospitalId": hospitalId, // Include in JSON
       "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate),
       "appointmentTime":
           '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
@@ -46,6 +61,12 @@ class Appointment {
       'appointmentCost': appointmentCost,
       'statusPayment': statusPayment, // Include in JSON
       'statusAppointment': statusAppointment, // Include in JSON
+      'requiredDocuments': requiredDocuments,
+      'isTeleconsultation': isTeleconsultation,
+      'insuranceProvider': insuranceProvider,
+      'insurancePolicyNumber': insurancePolicyNumber,
+      'preferredLanguage': preferredLanguage,
+      'visitReason': visitReason,
     };
   }
 
@@ -67,12 +88,13 @@ class Appointment {
       appointmentId: json["appointmentId"] ?? '',
       userId: json["userId"] ?? '',
       doctorId: json["doctorId"] ?? '',
+      hospitalId: json["hospitalId"] ?? '', // Parse hospitalId
       appointmentDate: json['appointmentDate'] != null
           ? DateTime.tryParse(json['appointmentDate']) ?? DateTime.now()
           : DateTime.now(),
       appointmentTime: parsedTime,
       duration: json['duration'] ?? '0',
-      typeOfSickness: json['typeOfSickness'] ?? 'Unknown',
+      typeOfSickness: json['typeOfSickness'],
       additionalNotes:
           json['additionalNotes'] ?? 'No additional notes provided',
       email: json['email'] ?? 'No email provided',
@@ -81,6 +103,14 @@ class Appointment {
           json['statusPayment'] ?? 'Not paid', // Include in factory constructor
       statusAppointment: json['statusAppointment'] ??
           'Not Approved', // Include in factory constructor
+      requiredDocuments: (json['requiredDocuments'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+      isTeleconsultation: json['isTeleconsultation'] ?? false,
+      insuranceProvider: json['insuranceProvider'],
+      insurancePolicyNumber: json['insurancePolicyNumber'],
+      preferredLanguage: json['preferredLanguage'],
+      visitReason: json['visitReason'],
     );
   }
 
