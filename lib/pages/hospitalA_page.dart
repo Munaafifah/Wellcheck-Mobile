@@ -353,17 +353,7 @@ class _HospitalAPageState extends State<HospitalAPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Preferred Language Field
-                    TextFormField(
-                      controller: _preferredLanguageController,
-                      decoration: InputDecoration(
-                        labelText: 'Preferred Language (optional)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    
 
                     // Appointment Cost Display
                     Text(

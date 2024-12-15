@@ -464,6 +464,7 @@ app.get("/appointments/:userId", async (req, res) => {
   }
 });
 
+/// Endpoint for adding a new appointment
 // Endpoint for adding a new appointment
 app.post("/appointments", async (req, res) => {
   try {
@@ -487,12 +488,15 @@ app.post("/appointments", async (req, res) => {
       appointmentTime,
       duration,
       typeOfSickness,
-      additionalNotes,
+      additionalNotes, // Optional field
       email,
+      insurancePolicyNumber,
       appointmentCost, // New field for cost
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
+      hospitalId = null, // Default to null if not provided
     } = req.body;
+
     const userId = decoded.userId; // Assuming userId is in the JWT payload
 
     // Validate required fields
@@ -504,7 +508,6 @@ app.post("/appointments", async (req, res) => {
       !email ||
       !statusAppointment ||
       appointmentCost == null 
-      
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -514,7 +517,7 @@ app.post("/appointments", async (req, res) => {
       console.log("Connected to MongoDB");
 
       // Fetch patient details
-      const patients = client.db("Wellcheck").collection("patients");
+      const patients = client.db("Wellcheck2").collection("Patient");
       const patient = await patients.findOne({ _id: userId });
 
       if (!patient) {
@@ -548,13 +551,15 @@ app.post("/appointments", async (req, res) => {
         appointmentId,
         userId,
         doctorId,
+        hospitalId: hospitalId || null, // Set to null if not provided
         appointmentDate,
         appointmentTime,
         duration,
         typeOfSickness,
-        additionalNotes,
-        email, // Include email in the appointment object
-        appointmentCost, // Include cost in the appointment object
+        additionalNotes: additionalNotes || null, // If additionalNotes is empty or undefined, set to null
+        insurancePolicyNumber,
+        email,
+        appointmentCost,
         statusPayment,
         statusAppointment,
         timestamp: new Date(appointmentDate),
@@ -582,6 +587,8 @@ app.post("/appointments", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+
 
   // Start the server
   app.listen(port, () => {
