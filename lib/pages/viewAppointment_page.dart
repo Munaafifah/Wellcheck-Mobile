@@ -354,6 +354,28 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   }
 
   Widget buildAppointmentCard(Appointment appointment) {
+    TableRow _buildTableRow(String label, String value,
+        {Color textColor = Colors.black}) {
+      return TableRow(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              label,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              value,
+              style: TextStyle(color: textColor),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -401,75 +423,90 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: Text("Appointment - ${appointment.typeOfSickness}"),
+                    title: Text("Appointment - \${appointment.typeOfSickness}"),
                     content: SingleChildScrollView(
                       child: Table(
                         columnWidths: const {
-                          0: const FlexColumnWidth(1),
-                          1: const FlexColumnWidth(2),
+                          0: FlexColumnWidth(1),
+                          1: FlexColumnWidth(2),
                         },
                         border: TableBorder.all(color: Colors.grey.shade300),
                         children: [
                           // Appointment Status
-                          TableRow(
-                            decoration:
-                                BoxDecoration(color: Colors.grey.shade100),
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Text(
-                                  "Status",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  appointment.statusAppointment,
-                                  style: TextStyle(
-                                    color: appointment.statusAppointment ==
-                                            "Approved"
-                                        ? Colors.green
-                                        : Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          _buildTableRow(
+                            "Status",
+                            appointment.statusAppointment,
+                            textColor:
+                                appointment.statusAppointment == "Approved"
+                                    ? Colors.green
+                                    : Colors.red,
                           ),
 
                           // Date and Time Information
-                          ...[
-                            _buildTableRow(
-                                "Date", appointment.getFormattedDate()),
-                            _buildTableRow(
-                                "Time", appointment.getFormattedTime()),
-                            _buildTableRow(
-                                "Duration", "${appointment.duration} mins"),
-                          ],
+                          _buildTableRow(
+                              "Date", appointment.getFormattedDate()),
+                          _buildTableRow(
+                              "Time", appointment.getFormattedTime()),
+                          _buildTableRow(
+                              "Duration", "${appointment.duration} mins"),
 
-                          // Medical Information
+                          // Conditional Attributes
                           if (appointment.typeOfSickness.isNotEmpty)
                             _buildTableRow(
                                 "Type of Sickness", appointment.typeOfSickness),
 
-                          // Additional Notes
                           if (appointment.additionalNotes.isNotEmpty)
                             _buildTableRow("Additional Notes",
                                 appointment.additionalNotes),
 
-                          // Contact Information
                           if (appointment.email.isNotEmpty)
                             _buildTableRow("Email", appointment.email),
 
-                          // Identifiers
                           if (appointment.doctorId.isNotEmpty)
                             _buildTableRow("Doctor ID", appointment.doctorId),
 
                           if (appointment.userId.isNotEmpty)
                             _buildTableRow("User ID", appointment.userId),
 
-                          // Cost
+                          if (appointment.hospitalId.isNotEmpty)
+                            _buildTableRow(
+                                "Hospital ID", appointment.hospitalId),
+
+                          if (appointment.statusPayment.isNotEmpty)
+                            _buildTableRow(
+                                "Payment Status", appointment.statusPayment),
+
+                          if (appointment.requiredDocuments?.isNotEmpty ??
+                              false)
+                            _buildTableRow(
+                              "Required Documents",
+                              appointment.requiredDocuments!.join(", "),
+                            ),
+
+                          if (appointment.isTeleconsultation)
+                            _buildTableRow("Teleconsultation", "Yes"),
+
+                          if (appointment.insuranceProvider?.isNotEmpty ??
+                              false)
+                            _buildTableRow("Insurance Provider",
+                                appointment.insuranceProvider!),
+
+                          if (appointment.insurancePolicyNumber?.isNotEmpty ??
+                              false)
+                            _buildTableRow(
+                              "Insurance Policy Number",
+                              appointment.insurancePolicyNumber!,
+                            ),
+
+                          if (appointment.preferredLanguage?.isNotEmpty ??
+                              false)
+                            _buildTableRow("Preferred Language",
+                                appointment.preferredLanguage!),
+
+                          if (appointment.visitReason?.isNotEmpty ?? false)
+                            _buildTableRow(
+                                "Visit Reason", appointment.visitReason!),
+
                           _buildTableRow("Cost",
                               "RM${appointment.appointmentCost.toStringAsFixed(2)}"),
                         ],
