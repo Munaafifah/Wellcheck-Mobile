@@ -5,6 +5,8 @@ import '../services/sickness_service.dart';
 import '../models/sickness_model.dart';
 
 class HospitalAPage extends StatefulWidget {
+  const HospitalAPage({super.key});
+
   @override
   _HospitalAPageState createState() => _HospitalAPageState();
 }
@@ -13,14 +15,18 @@ class _HospitalAPageState extends State<HospitalAPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _additionalNotesController = TextEditingController();
-  final TextEditingController _insuranceProviderController = TextEditingController();
-  final TextEditingController _insurancePolicyNumberController = TextEditingController();
-  final TextEditingController _preferredLanguageController = TextEditingController();
+  final TextEditingController _additionalNotesController =
+      TextEditingController();
+  final TextEditingController _insuranceProviderController =
+      TextEditingController();
+  final TextEditingController _insurancePolicyNumberController =
+      TextEditingController();
+  final TextEditingController _preferredLanguageController =
+      TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final SicknessService _sicknessService = SicknessService();
 
   bool _isLoading = false;
@@ -55,7 +61,8 @@ class _HospitalAPageState extends State<HospitalAPage> {
       setState(() {});
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load sickness types: ${e.toString()}')),
+        SnackBar(
+            content: Text('Failed to load sickness types: ${e.toString()}')),
       );
     }
   }
@@ -66,7 +73,8 @@ class _HospitalAPageState extends State<HospitalAPage> {
       for (String sicknessName in _selectedSicknessTypes) {
         final sickness = _sicknesses.firstWhere(
           (s) => s.name == sicknessName,
-          orElse: () => Sickness(appointmentId: '', name: '', appointmentPrice: 0.0),
+          orElse: () =>
+              Sickness(appointmentId: '', name: '', appointmentPrice: 0.0),
         );
         _appointmentCost += sickness.appointmentPrice;
       }
@@ -90,20 +98,21 @@ class _HospitalAPageState extends State<HospitalAPage> {
       if (token != null) {
         String sicknessTypesString = _selectedSicknessTypes.join(', ');
         await _appointmentService.createAppointment(
-          token: token,
-          appointmentDate: _selectedDate!,
-          appointmentTime: _selectedTime!,
-          duration: _selectedDuration!,
-          typeOfSickness: sicknessTypesString,
-          additionalNotes: _additionalNotesController.text,
-          email: _emailController.text,
-          appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
-          statusAppointment: "Not Approved",
-          insuranceProvider: _insuranceProviderController.text, // New field
-          insurancePolicyNumber: _insurancePolicyNumberController.text, // New field
-          preferredLanguage: _preferredLanguageController.text // New field
-        );
+            token: token,
+            appointmentDate: _selectedDate!,
+            appointmentTime: _selectedTime!,
+            duration: _selectedDuration!,
+            typeOfSickness: sicknessTypesString,
+            additionalNotes: _additionalNotesController.text,
+            email: _emailController.text,
+            appointmentCost: _appointmentCost,
+            statusPayment: "Not Paid",
+            statusAppointment: "Not Approved",
+            insuranceProvider: _insuranceProviderController.text, // New field
+            insurancePolicyNumber:
+                _insurancePolicyNumberController.text, // New field
+            preferredLanguage: _preferredLanguageController.text // New field
+            );
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment booked successfully!')),
@@ -160,7 +169,8 @@ class _HospitalAPageState extends State<HospitalAPage> {
                   children: [
                     Text(
                       'Book Your Appointment',
-                      style: theme.textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleLarge!
+                          .copyWith(fontWeight: FontWeight.bold),
                     ),
                     const Divider(height: 20, thickness: 1.5),
                     const SizedBox(height: 16),
@@ -209,11 +219,15 @@ class _HospitalAPageState extends State<HospitalAPage> {
                         if (date != null) {
                           setState(() {
                             _selectedDate = date;
-                            _dateController.text = _selectedDate!.toLocal().toString().split(' ')[0];
+                            _dateController.text = _selectedDate!
+                                .toLocal()
+                                .toString()
+                                .split(' ')[0];
                           });
                         }
                       },
-                      validator: (value) => _selectedDate == null ? 'Please select a date' : null,
+                      validator: (value) =>
+                          _selectedDate == null ? 'Please select a date' : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -236,11 +250,13 @@ class _HospitalAPageState extends State<HospitalAPage> {
                         if (time != null) {
                           setState(() {
                             _selectedTime = time;
-                            _timeController.text = '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
+                            _timeController.text =
+                                '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
                           });
                         }
                       },
-                      validator: (value) => _selectedTime == null ? 'Please select a time' : null,
+                      validator: (value) =>
+                          _selectedTime == null ? 'Please select a time' : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -264,7 +280,8 @@ class _HospitalAPageState extends State<HospitalAPage> {
                           _selectedDuration = value;
                         });
                       },
-                      validator: (value) => value == null ? 'Please select a duration' : null,
+                      validator: (value) =>
+                          value == null ? 'Please select a duration' : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -284,14 +301,17 @@ class _HospitalAPageState extends State<HospitalAPage> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        if (value != null && !_selectedSicknessTypes.contains(value)) {
+                        if (value != null &&
+                            !_selectedSicknessTypes.contains(value)) {
                           setState(() {
                             _selectedSicknessTypes.add(value);
                             _calculateCost();
                           });
                         }
                       },
-                      validator: (value) => _selectedSicknessTypes.isEmpty ? 'Please select at least one symptom' : null,
+                      validator: (value) => _selectedSicknessTypes.isEmpty
+                          ? 'Please select at least one symptom'
+                          : null,
                     ),
 
                     const SizedBox(height: 16),
@@ -302,7 +322,8 @@ class _HospitalAPageState extends State<HospitalAPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Selected Symptoms:',
-                                  style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+                                  style: theme.textTheme.bodyLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold)),
                               ListView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
@@ -311,10 +332,12 @@ class _HospitalAPageState extends State<HospitalAPage> {
                                   return ListTile(
                                     title: Text(_selectedSicknessTypes[index]),
                                     trailing: IconButton(
-                                      icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                      icon: const Icon(Icons.remove_circle,
+                                          color: Colors.red),
                                       onPressed: () {
                                         setState(() {
-                                          _selectedSicknessTypes.removeAt(index);
+                                          _selectedSicknessTypes
+                                              .removeAt(index);
                                           _calculateCost();
                                         });
                                       },
@@ -352,8 +375,6 @@ class _HospitalAPageState extends State<HospitalAPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    
 
                     // Appointment Cost Display
                     Text(

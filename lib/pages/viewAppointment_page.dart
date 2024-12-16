@@ -342,7 +342,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
           padding: const EdgeInsets.all(8.0),
           child: Text(
             label,
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         Padding(
@@ -404,9 +404,9 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                     title: Text("Appointment - ${appointment.typeOfSickness}"),
                     content: SingleChildScrollView(
                       child: Table(
-                        columnWidths: {
-                          0: FlexColumnWidth(1),
-                          1: FlexColumnWidth(2),
+                        columnWidths: const {
+                          0: const FlexColumnWidth(1),
+                          1: const FlexColumnWidth(2),
                         },
                         border: TableBorder.all(color: Colors.grey.shade300),
                         children: [
@@ -415,8 +415,8 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                             decoration:
                                 BoxDecoration(color: Colors.grey.shade100),
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
+                              const Padding(
+                                padding: EdgeInsets.all(8.0),
                                 child: Text(
                                   "Status",
                                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -439,7 +439,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                           ),
 
                           // Date and Time Information
-                          if (appointment.appointmentDate != null) ...[
+                          ...[
                             _buildTableRow(
                                 "Date", appointment.getFormattedDate()),
                             _buildTableRow(
@@ -454,10 +454,9 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                                 "Type of Sickness", appointment.typeOfSickness),
 
                           // Additional Notes
-                          if (appointment.additionalNotes != null &&
-                              appointment.additionalNotes!.isNotEmpty)
+                          if (appointment.additionalNotes.isNotEmpty)
                             _buildTableRow("Additional Notes",
-                                appointment.additionalNotes!),
+                                appointment.additionalNotes),
 
                           // Contact Information
                           if (appointment.email.isNotEmpty)

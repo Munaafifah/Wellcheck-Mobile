@@ -29,17 +29,20 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final SicknessService _sicknessService =
       SicknessService(); // Instance of your service
   List<Sickness> _sicknesses = []; // List to hold fetched sickness types
-  final TextEditingController _insuranceProviderController = TextEditingController();
-  final TextEditingController _insurancePolicyNumberController = TextEditingController();
-  final TextEditingController _preferredLanguageController = TextEditingController();
-  bool _isTeleconsultation = false;
+  final TextEditingController _insuranceProviderController =
+      TextEditingController();
+  final TextEditingController _insurancePolicyNumberController =
+      TextEditingController();
+  final TextEditingController _preferredLanguageController =
+      TextEditingController();
+  final bool _isTeleconsultation = false;
 
   bool _isLoading = false;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _selectedDuration;
   //String? _typeOfSickness;
-   String? _selectedHospital; 
+  String? _selectedHospital;
   double _appointmentCost = 0.0;
   final List<String> _hospitals = ['Hospital A', 'Hospital B'];
 
@@ -72,7 +75,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
     });
   }
 
-
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,21 +92,22 @@ class _AppointmentPageState extends State<AppointmentPage> {
       if (token != null) {
         String sicknessTypesString = _selectedSicknessTypes.join(', ');
         await _appointmentService.createAppointment(
-  token: token,
-  appointmentDate: _selectedDate!,
-  appointmentTime: _selectedTime!,
-  duration: _selectedDuration!,
-  typeOfSickness: sicknessTypesString,
-  additionalNotes: _additionalNotesController.text,
-  email: _emailController.text,
-  appointmentCost: _appointmentCost,
-  statusPayment: "Not Paid",
-  statusAppointment: "Not Approved",
-  isTeleconsultation: _isTeleconsultation, // New field
-  insuranceProvider: _insuranceProviderController.text, // New field
-  insurancePolicyNumber: _insurancePolicyNumberController.text, // New field
-  preferredLanguage: _preferredLanguageController.text // New field
-);
+            token: token,
+            appointmentDate: _selectedDate!,
+            appointmentTime: _selectedTime!,
+            duration: _selectedDuration!,
+            typeOfSickness: sicknessTypesString,
+            additionalNotes: _additionalNotesController.text,
+            email: _emailController.text,
+            appointmentCost: _appointmentCost,
+            statusPayment: "Not Paid",
+            statusAppointment: "Not Approved",
+            isTeleconsultation: _isTeleconsultation, // New field
+            insuranceProvider: _insuranceProviderController.text, // New field
+            insurancePolicyNumber:
+                _insurancePolicyNumberController.text, // New field
+            preferredLanguage: _preferredLanguageController.text // New field
+            );
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment booked successfully!')),
@@ -154,28 +157,29 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 
   void _onHospitalSelected(String? selectedValue) {
-  if (selectedValue != null) {
-    switch (selectedValue) {
-      case 'Hospital A':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => HospitalAPage()), // Ensure this matches class name
-        );
-        break;
-      case 'Hospital B':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => HospitalBPage()), // Ensure this matches class name
-        );
-        break;
+    if (selectedValue != null) {
+      switch (selectedValue) {
+        case 'Hospital A':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    HospitalAPage()), // Ensure this matches class name
+          );
+          break;
+        case 'Hospital B':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    HospitalBPage()), // Ensure this matches class name
+          );
+          break;
+      }
     }
   }
-}
 
-
-
-
- @override
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -215,11 +219,10 @@ class _AppointmentPageState extends State<AppointmentPage> {
                         );
                       }).toList(),
                       onChanged: _onHospitalSelected,
-                      validator: (value) => value == null ? 'Please select a hospital' : null,
+                      validator: (value) =>
+                          value == null ? 'Please select a hospital' : null,
                     ),
                     const SizedBox(height: 16),
-
-                    
                   ],
                 ),
               ),
