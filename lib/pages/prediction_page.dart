@@ -43,7 +43,7 @@ class _PredictionPageState extends State<PredictionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Prediction Details")),
+      appBar: AppBar(title: const Text("Diagnoses Results")),
       body: _prediction == null
           ? const Center(child: CircularProgressIndicator())
           : _prediction!.isEmpty
