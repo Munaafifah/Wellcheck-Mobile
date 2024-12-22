@@ -5,9 +5,9 @@ import '../services/dashboard_service.dart';
 import '../models/dashboard_model.dart';
 import 'prescription_page.dart';
 import 'symptom_page.dart';
-import 'prediction_page.dart';
 import 'Healthstatus_page.dart';
 import '../pages/viewAppointment_page.dart';
+import 'prediction_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userId;
@@ -210,6 +210,17 @@ class _DashboardPageState extends State<DashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SymptomPage()),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildActionButton(
+          "Diagnoses Result",
+          Icons.description,
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PredictionPage(userId:widget.userId)),
             );
           },
         ),

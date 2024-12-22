@@ -3,6 +3,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../services/sickness_service.dart';
 import '../models/sickness_model.dart';
+import 'hospitalA_page.dart';
+import 'hospitalB_page.dart';
+
 // For date formatting
 
 class AppointmentPage extends StatefulWidget {
@@ -26,13 +29,22 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final SicknessService _sicknessService =
       SicknessService(); // Instance of your service
   List<Sickness> _sicknesses = []; // List to hold fetched sickness types
+  final TextEditingController _insuranceProviderController =
+      TextEditingController();
+  final TextEditingController _insurancePolicyNumberController =
+      TextEditingController();
+  final TextEditingController _preferredLanguageController =
+      TextEditingController();
+  final bool _isTeleconsultation = false;
 
   bool _isLoading = false;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _selectedDuration;
   //String? _typeOfSickness;
+  String? _selectedHospital;
   double _appointmentCost = 0.0;
+  final List<String> _hospitals = ['Hospital A', 'Hospital B'];
 
   final List<String> _selectedSicknessTypes = [];
 
@@ -63,20 +75,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
     });
   }
 
-  // void _addCustomSicknessType() {
-  //   final customType = _customSicknessController.text.trim();
-  //   if (customType.isNotEmpty) {
-  //     setState(() {
-  //       if (!_sicknessTypes.contains(customType)) {
-  //         _sicknessTypes.add(customType);
-  //       }
-  //       _selectedSicknessTypes.add(customType);
-  //       _customSicknessController.clear();
-  //       _calculateCost(); // Recalculate cost
-  //     });
-  //   }
-  // }
-
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -94,17 +92,22 @@ class _AppointmentPageState extends State<AppointmentPage> {
       if (token != null) {
         String sicknessTypesString = _selectedSicknessTypes.join(', ');
         await _appointmentService.createAppointment(
-          token: token,
-          appointmentDate: _selectedDate!,
-          appointmentTime: _selectedTime!,
-          duration: _selectedDuration!,
-          typeOfSickness: sicknessTypesString,
-          additionalNotes: _additionalNotesController.text,
-          email: _emailController.text,
-          appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
-          statusAppointment: "Not Approved",
-        );
+            token: token,
+            appointmentDate: _selectedDate!,
+            appointmentTime: _selectedTime!,
+            duration: _selectedDuration!,
+            typeOfSickness: sicknessTypesString,
+            additionalNotes: _additionalNotesController.text,
+            email: _emailController.text,
+            appointmentCost: _appointmentCost,
+            statusPayment: "Not Paid",
+            statusAppointment: "Not Approved",
+            isTeleconsultation: _isTeleconsultation, // New field
+            insuranceProvider: _insuranceProviderController.text, // New field
+            insurancePolicyNumber:
+                _insurancePolicyNumberController.text, // New field
+            preferredLanguage: _preferredLanguageController.text // New field
+            );
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment booked successfully!')),
@@ -153,6 +156,29 @@ class _AppointmentPageState extends State<AppointmentPage> {
     }
   }
 
+  void _onHospitalSelected(String? selectedValue) {
+    if (selectedValue != null) {
+      switch (selectedValue) {
+        case 'Hospital A':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    const HospitalAPage()), // Ensure this matches class name
+          );
+          break;
+        case 'Hospital B':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    const HospitalBPage()), // Ensure this matches class name
+          );
+          break;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -177,223 +203,25 @@ class _AppointmentPageState extends State<AppointmentPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Book Your Appointment',
-                      style: theme.textTheme.titleLarge!
-                          .copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const Divider(height: 20, thickness: 1.5),
-                    const SizedBox(height: 16),
-
-                    // Email Field
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Please enter a valid email address';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Appointment Date Field
-                    TextFormField(
-                      controller: _dateController,
-                      decoration: InputDecoration(
-                        labelText: 'Appointment Date',
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      readOnly: true,
-                      onTap: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2100),
-                        );
-                        if (date != null) {
-                          setState(() {
-                            _selectedDate = date;
-                            _dateController.text = _selectedDate!
-                                .toLocal()
-                                .toString()
-                                .split(' ')[0];
-                          });
-                        }
-                      },
-                      validator: (value) =>
-                          _selectedDate == null ? 'Please select a date' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Appointment Time Field
-                    TextFormField(
-                      controller: _timeController,
-                      decoration: InputDecoration(
-                        labelText: 'Appointment Time',
-                        prefixIcon: const Icon(Icons.access_time),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      readOnly: true,
-                      onTap: () async {
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) {
-                          setState(() {
-                            _selectedTime = time;
-                            _timeController.text =
-                                '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}';
-                          });
-                        }
-                      },
-                      validator: (value) =>
-                          _selectedTime == null ? 'Please select a time' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Duration Dropdown
+                    // Hospital Selection Dropdown
                     DropdownButtonFormField<String>(
-                      value: _selectedDuration,
+                      value: _selectedHospital,
                       decoration: InputDecoration(
-                        labelText: 'Duration (minutes)',
+                        labelText: 'Select Hospital',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      items: ['15', '30', '45', '60']
-                          .map((duration) => DropdownMenuItem(
-                                value: duration,
-                                child: Text('$duration minutes'),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedDuration = value;
-                          //_calculateCost(value); // Update cost
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a duration' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Type of Sickness Multi-Select
-                    DropdownButtonFormField<String>(
-                      value: null, // No initial selection
-                      decoration: InputDecoration(
-                        labelText: 'Select Symptom',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items: _sicknesses.map((sickness) {
+                      items: _hospitals.map((hospital) {
                         return DropdownMenuItem(
-                          value: sickness.name,
-                          child: Text(sickness.name),
+                          value: hospital,
+                          child: Text(hospital),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        if (value != null &&
-                            !_selectedSicknessTypes.contains(value)) {
-                          setState(() {
-                            _selectedSicknessTypes
-                                .add(value); // Add selected symptom
-                            _calculateCost(); // Recalculate cost
-                          });
-                        }
-                      },
-                      validator: (value) => _selectedSicknessTypes.isEmpty
-                          ? 'Please select at least one symptom'
-                          : null,
+                      onChanged: _onHospitalSelected,
+                      validator: (value) =>
+                          value == null ? 'Please select a hospital' : null,
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Selected Symptoms Display
-                    _selectedSicknessTypes.isNotEmpty
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Selected Symptoms:',
-                                  style: theme.textTheme.bodyLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold)),
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _selectedSicknessTypes.length,
-                                itemBuilder: (context, index) {
-                                  return ListTile(
-                                    title: Text(_selectedSicknessTypes[index]),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.remove_circle,
-                                          color: Colors.red),
-                                      onPressed: () {
-                                        setState(() {
-                                          // Remove the symptom from the selected list
-                                          _selectedSicknessTypes
-                                              .removeAt(index);
-                                          _calculateCost(); // Update the cost if necessary
-                                        });
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          )
-                        : Container(),
-
-                    // Additional Notes Field
-                    TextFormField(
-                      controller: _additionalNotesController,
-                      decoration: InputDecoration(
-                        labelText: 'Additional Notes (optional)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Submit Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitForm,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text('Book Appointment'),
-                      ),
-                    ),
-
-                    // Appointment Cost Display
-                    Text(
-                        'Appointment Cost: RM${_appointmentCost.toStringAsFixed(2)}',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
                     const SizedBox(height: 16),
                   ],
                 ),

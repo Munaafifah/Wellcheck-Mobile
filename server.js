@@ -287,7 +287,12 @@ app.get("/prescriptions/:userId", async (req, res) => {
           return res.status(404).json({ error: "Patient not found" });
         }
   
-        const doctorId = patient.assigned_doctor;
+        // Access the assigned_doctor field
+        const doctorId = patient[userId]?.assigned_doctor;
+  
+        if (!doctorId) {
+          return res.status(404).json({ error: "Assigned doctor not found" });
+        }
   
         // Generate unique symptomId
         const symptomId = uuidv4();
@@ -424,154 +429,166 @@ app.get("/prescriptions/:userId", async (req, res) => {
 });
 
 
-  app.get("/appointments/:userId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-  
-      // Verify the token
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const userId = req.params.userId;
-  
-        // Fetch appointments for the user
-        try {
-          await client.connect();
-          const appointments = client.db("Wellcheck2").collection("appointments");
-          const userAppointments = await appointments.find({ userId }).toArray();
-  
-          res.json(userAppointments);
-        } catch (dbError) {
-          console.error("Database Error:", dbError);
-          res.status(500).json({ error: "Failed to fetch appointments" });
-        } finally {
-          await client.close(); // Ensure database connection is closed
-        }
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      res.status(500).json({ error: "Internal server error" });
+app.get("/appointments/:userId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
-  
-  // Endpoint for adding a new appointment
-  app.post("/appointments", async (req, res) => {
-    try {
-      // Extract token from Authorization header
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-  
-      // Verify JWT
-      let decoded;
-      try {
-        decoded = jwt.verify(token, secretKey);
-      } catch (err) {
+
+    // Verify the token
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
         return res.status(401).json({ error: "Invalid token" });
       }
+
+      const userId = req.params.userId;
+
+      // Fetch appointments for the user
+      try {
+        await client.connect();
+        const appointments = client.db("Wellcheck2").collection("appointments");
+        const userAppointments = await appointments.find({ userId }).toArray();
+
+        res.json(userAppointments);
+      } catch (dbError) {
+        console.error("Database Error:", dbError);
+        res.status(500).json({ error: "Failed to fetch appointments" });
+      } finally {
+        await client.close(); // Ensure database connection is closed
+      }
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/// Endpoint for adding a new appointment
+// Endpoint for adding a new appointment
+app.post("/appointments", async (req, res) => {
+  try {
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(token, secretKey);
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    // Extract data from request body
+    const {
+      appointmentDate,
+      appointmentTime,
+      duration,
+      typeOfSickness,
+      additionalNotes, // Optional field
+      email,
+      insurancePolicyNumber,
+      appointmentCost, // New field for cost
+      statusPayment = "Not Paid",
+      statusAppointment = "Not Approved",
+      hospitalId = null, // Default to null if not provided
+    } = req.body;
+
+    const userId = decoded.userId; // Assuming userId is in the JWT payload
+
+    // Validate required fields
+    if (
+      !appointmentDate ||
+      !appointmentTime ||
+      !duration ||
+      !typeOfSickness ||
+      !email ||
+      !statusAppointment ||
+      appointmentCost == null 
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+      await client.connect();
+      console.log("Connected to MongoDB");
+
+      // Fetch patient details
+      const patients = client.db("Wellcheck2").collection("Patient");
+      const patient = await patients.findOne({ _id: userId });
+
+      if (!patient) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      const appointmentId = uuidv4();
+      // Access the assigned_doctor field
+      const doctorId = patient[userId]?.assigned_doctor;
   
-      // Extract data from request body
-      const {
+      if (!doctorId) {
+        return res.status(404).json({ error: "Assigned doctor not found" });
+      }
+
+      // Check for duplicate appointment
+      const appointments = client.db("Wellcheck2").collection("appointments");
+      const existingAppointment = await appointments.findOne({
+        userId,
+        appointmentDate,
+        appointmentTime,
+      });
+
+      if (existingAppointment) {
+        return res.status(400).json({
+          error: "Appointment already exists for the selected date and time",
+        });
+      }
+
+      // Create a new appointment object
+      const newAppointment = {
+        appointmentId,
+        userId,
+        doctorId,
+        hospitalId: hospitalId || null, // Set to null if not provided
         appointmentDate,
         appointmentTime,
         duration,
         typeOfSickness,
-        additionalNotes,
+        additionalNotes: additionalNotes || null, // If additionalNotes is empty or undefined, set to null
+        insurancePolicyNumber,
         email,
-        appointmentCost, // New field for cost
-        statusPayment = "Not Paid",
-        statusAppointment = "Not Approved",
-      } = req.body;
-      const userId = decoded.userId; // Assuming `userId` is in the JWT payload
-  
-      // Validate required fields
-      if (
-        !appointmentDate ||
-        !appointmentTime ||
-        !duration ||
-        !typeOfSickness ||
-        !email ||
-        !statusAppointment ||
-        appointmentCost == null 
-        
-      ) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-  
-      try {
-        await client.connect();
-        console.log("Connected to MongoDB");
-  
-        // Fetch patient details
-        const patients = client.db("Wellcheck").collection("patients");
-        const patient = await patients.findOne({ _id: userId });
-  
-        if (!patient) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
-  
-        const appointmentId = uuidv4();
-        const doctorId = patient.assigned_doctor;
-  
-        // Check for duplicate appointment
-        const appointments = client.db("Wellcheck2").collection("appointments");
-        const existingAppointment = await appointments.findOne({
-          userId,
-          appointmentDate,
-          appointmentTime,
+        appointmentCost,
+        statusPayment,
+        statusAppointment,
+        timestamp: new Date(appointmentDate),
+      };
+
+      // Insert appointment into the database
+      const result = await appointments.insertOne(newAppointment);
+      if (result.acknowledged) {
+        res.status(201).json({
+          message: "Appointment created successfully",
+          appointment: newAppointment,
         });
-  
-        if (existingAppointment) {
-          return res.status(400).json({
-            error: "Appointment already exists for the selected date and time",
-          });
-        }
-  
-        // Create a new appointment object
-        const newAppointment = {
-          appointmentId,
-          userId,
-          doctorId,
-          appointmentDate,
-          appointmentTime,
-          duration,
-          typeOfSickness,
-          additionalNotes,
-          email, // Include email in the appointment object
-          appointmentCost, // Include cost in the appointment object
-          statusPayment,
-          statusAppointment,
-          timestamp: new Date(appointmentDate),
-        };
-  
-        // Insert appointment into the database
-        const result = await appointments.insertOne(newAppointment);
-        if (result.acknowledged) {
-          res.status(201).json({
-            message: "Appointment created successfully",
-            appointment: newAppointment,
-          });
-        } else {
-          res.status(500).json({ error: "Failed to create appointment" });
-        }
-      } catch (mongoError) {
-        console.error("MongoDB Error:", mongoError);
-        res.status(500).json({ error: "Database error occurred" });
-      } finally {
-        await client.close(); // Ensure the client connection is closed
-        console.log("Disconnected from MongoDB");
+      } else {
+        res.status(500).json({ error: "Failed to create appointment" });
       }
-    } catch (error) {
-      console.error("Error:", error);
-      res.status(500).json({ error: "Internal server error" });
+    } catch (mongoError) {
+      console.error("MongoDB Error:", mongoError);
+      res.status(500).json({ error: "Database error occurred" });
+    } finally {
+      await client.close(); // Ensure the client connection is closed
+      console.log("Disconnected from MongoDB");
     }
-  });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 
   // Start the server
   app.listen(port, () => {
