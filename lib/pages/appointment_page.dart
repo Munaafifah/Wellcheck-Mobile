@@ -164,7 +164,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    HospitalAPage()), // Ensure this matches class name
+                    const HospitalAPage()), // Ensure this matches class name
           );
           break;
         case 'Hospital B':
@@ -172,7 +172,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    HospitalBPage()), // Ensure this matches class name
+                    const HospitalBPage()), // Ensure this matches class name
           );
           break;
       }

@@ -354,7 +354,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   }
 
   Widget buildAppointmentCard(Appointment appointment) {
-    TableRow _buildTableRow(String label, String value,
+    TableRow buildTableRow(String label, String value,
         {Color textColor = Colors.black}) {
       return TableRow(
         children: [
@@ -362,7 +362,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             padding: const EdgeInsets.all(8.0),
             child: Text(
               label,
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           Padding(
@@ -423,7 +423,8 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: Text("Appointment - \${appointment.typeOfSickness}"),
+                    title: const Text(
+                        "Appointment - \${appointment.typeOfSickness}"),
                     content: SingleChildScrollView(
                       child: Table(
                         columnWidths: const {
@@ -433,7 +434,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                         border: TableBorder.all(color: Colors.grey.shade300),
                         children: [
                           // Appointment Status
-                          _buildTableRow(
+                          buildTableRow(
                             "Status",
                             appointment.statusAppointment,
                             textColor:
@@ -443,71 +444,69 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                           ),
 
                           // Date and Time Information
-                          _buildTableRow(
-                              "Date", appointment.getFormattedDate()),
-                          _buildTableRow(
-                              "Time", appointment.getFormattedTime()),
-                          _buildTableRow(
+                          buildTableRow("Date", appointment.getFormattedDate()),
+                          buildTableRow("Time", appointment.getFormattedTime()),
+                          buildTableRow(
                               "Duration", "${appointment.duration} mins"),
 
                           // Conditional Attributes
                           if (appointment.typeOfSickness.isNotEmpty)
-                            _buildTableRow(
+                            buildTableRow(
                                 "Type of Sickness", appointment.typeOfSickness),
 
                           if (appointment.additionalNotes.isNotEmpty)
-                            _buildTableRow("Additional Notes",
+                            buildTableRow("Additional Notes",
                                 appointment.additionalNotes),
 
                           if (appointment.email.isNotEmpty)
-                            _buildTableRow("Email", appointment.email),
+                            buildTableRow("Email", appointment.email),
 
                           if (appointment.doctorId.isNotEmpty)
-                            _buildTableRow("Doctor ID", appointment.doctorId),
+                            buildTableRow("Doctor ID", appointment.doctorId),
 
                           if (appointment.userId.isNotEmpty)
-                            _buildTableRow("User ID", appointment.userId),
+                            buildTableRow("User ID", appointment.userId),
 
                           if (appointment.hospitalId.isNotEmpty)
-                            _buildTableRow(
+                            buildTableRow(
                                 "Hospital ID", appointment.hospitalId),
 
                           if (appointment.statusPayment.isNotEmpty)
-                            _buildTableRow(
+                            buildTableRow(
                                 "Payment Status", appointment.statusPayment),
 
                           if (appointment.requiredDocuments?.isNotEmpty ??
                               false)
-                            _buildTableRow(
+                            buildTableRow(
                               "Required Documents",
                               appointment.requiredDocuments!.join(", "),
                             ),
 
                           if (appointment.isTeleconsultation)
-                            _buildTableRow("Teleconsultation", "Yes"),
+                            buildTableRow("Teleconsultation", "Yes"),
 
                           if (appointment.insuranceProvider?.isNotEmpty ??
                               false)
-                            _buildTableRow("Insurance Provider",
+                            buildTableRow("Insurance Provider",
                                 appointment.insuranceProvider!),
 
                           if (appointment.insurancePolicyNumber?.isNotEmpty ??
                               false)
-                            _buildTableRow(
+                            buildTableRow(
                               "Insurance Policy Number",
                               appointment.insurancePolicyNumber!,
                             ),
 
                           if (appointment.preferredLanguage?.isNotEmpty ??
                               false)
-                            _buildTableRow("Preferred Language",
+                            buildTableRow("Preferred Language",
                                 appointment.preferredLanguage!),
 
                           if (appointment.visitReason?.isNotEmpty ?? false)
-                            _buildTableRow(
+                            buildTableRow(
                                 "Visit Reason", appointment.visitReason!),
 
-                          _buildTableRow("Cost",
+                          buildTableRow("Cost",
                               "RM${appointment.appointmentCost.toStringAsFixed(2)}"),
                         ],
                       ),

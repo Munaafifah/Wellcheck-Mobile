@@ -325,19 +325,19 @@ class _PredictionPageState extends State<PredictionPage> {
     );
   }
 
- Widget _buildPredictionCard(PredictionModel prediction) {
-  return Container(
-    height: 200, // Set desired height
-    child: Card(
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
+  Widget _buildPredictionCard(PredictionModel prediction) {
+    return SizedBox(
+      height: 200, // Set desired height
+      child: Card(
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
               Text(
                 "Time of Prediction: ${prediction.timestamp.toLocal().toString().split(' ')[0]}",
                 style: const TextStyle(
@@ -345,16 +345,16 @@ class _PredictionPageState extends State<PredictionPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            const SizedBox(height: 10),
-            _buildSymptomsTable(prediction.symptomsList),
-            const SizedBox(height: 10),
-            _buildDiagnosisTable(prediction),
-          ],
+              const SizedBox(height: 10),
+              _buildSymptomsTable(prediction.symptomsList),
+              const SizedBox(height: 10),
+              _buildDiagnosisTable(prediction),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildSymptomsTable(List<String> symptoms) {
     return Column(
@@ -376,7 +376,7 @@ class _PredictionPageState extends State<PredictionPage> {
             child: Text(
                 "• ${formattedSymptom[0].toUpperCase()}${formattedSymptom.substring(1).toLowerCase()}"),
           );
-        }).toList(),
+        }),
       ],
     );
   }
