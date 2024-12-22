@@ -36,8 +36,10 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
         final healthstatus = await _healthstatusService.fetchHealthstatusById(
             widget.userId, token);
         setState(() {
-          _healthstatus = healthstatus;
-          _filteredHealthstatus = healthstatus; // Initialize filtered list
+          _healthstatus = healthstatus
+            ..sort((a, b) =>
+                b.timestamp?.compareTo(a.timestamp ?? DateTime(0)) ?? 0);
+          _filteredHealthstatus = _healthstatus; // Initialize filtered list
           _hasError = false;
         });
       } catch (e) {
