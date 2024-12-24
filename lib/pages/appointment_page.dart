@@ -32,7 +32,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final TextEditingController _insuranceProviderController = TextEditingController();
   final TextEditingController _insurancePolicyNumberController = TextEditingController();
   final TextEditingController _preferredLanguageController = TextEditingController();
-  bool _isTeleconsultation = false;
+  final bool _isTeleconsultation = false;
 
   bool _isLoading = false;
   DateTime? _selectedDate;
@@ -152,17 +152,20 @@ class _AppointmentPageState extends State<AppointmentPage> {
       );
     }
   }
+  String? _hospitalId;
 
   void _onHospitalSelected(String? selectedValue) {
   if (selectedValue != null) {
     switch (selectedValue) {
       case 'Hospital A':
+      _hospitalId = 'hospA'; // Set the hospital ID for Hospital A
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => HospitalAPage()), // Ensure this matches class name
         );
         break;
       case 'Hospital B':
+      _hospitalId = 'hospB'; // Set the hospital ID for Hospital B
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => HospitalBPage()), // Ensure this matches class name

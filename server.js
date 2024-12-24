@@ -490,11 +490,12 @@ app.post("/appointments", async (req, res) => {
       typeOfSickness,
       additionalNotes, // Optional field
       email,
+      insuranceProvider,
       insurancePolicyNumber,
       appointmentCost, // New field for cost
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
-      hospitalId = null, // Default to null if not provided
+      
     } = req.body;
 
     const userId = decoded.userId; // Assuming userId is in the JWT payload
@@ -551,13 +552,14 @@ app.post("/appointments", async (req, res) => {
         appointmentId,
         userId,
         doctorId,
-        hospitalId: hospitalId || null, // Set to null if not provided
+        
         appointmentDate,
         appointmentTime,
         duration,
         typeOfSickness,
         additionalNotes: additionalNotes || null, // If additionalNotes is empty or undefined, set to null
-        insurancePolicyNumber,
+        insuranceProvider:   insuranceProvider || null,
+        insurancePolicyNumber:  insurancePolicyNumber || null,
         email,
         appointmentCost,
         statusPayment,

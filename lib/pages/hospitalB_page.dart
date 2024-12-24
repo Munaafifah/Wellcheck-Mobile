@@ -5,6 +5,11 @@ import '../services/sickness_service.dart';
 import '../models/sickness_model.dart';
 
 class HospitalBPage extends StatefulWidget {
+  const HospitalBPage({super.key});
+
+ // final String hospitalId;
+
+  //const HospitalBPage({Key? key, required this.hospitalId}) : super(key: key);
   @override
   _HospitalBPageState createState() => _HospitalBPageState();
 }
@@ -20,7 +25,7 @@ class _HospitalBPageState extends State<HospitalBPage> {
 
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final SicknessService _sicknessService = SicknessService();
 
   bool _isLoading = false;
@@ -103,6 +108,7 @@ class _HospitalBPageState extends State<HospitalBPage> {
           insuranceProvider: _insuranceProviderController.text, // New field
           insurancePolicyNumber: _insurancePolicyNumberController.text, // New field
           preferredLanguage: _preferredLanguageController.text // New field
+          //hospitalId: widget.hospitalId, // Pass the hospitalId
         );
 
         ScaffoldMessenger.of(context).showSnackBar(

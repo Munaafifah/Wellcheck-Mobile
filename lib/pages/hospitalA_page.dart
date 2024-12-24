@@ -4,7 +4,13 @@ import '../services/appointment_service.dart';
 import '../services/sickness_service.dart';
 import '../models/sickness_model.dart';
 
+
 class HospitalAPage extends StatefulWidget {
+  const HospitalAPage({super.key});
+
+  //final String hospitalId;
+
+  //const HospitalAPage({Key? key, required this.hospitalId}) : super(key: key);
   @override
   _HospitalAPageState createState() => _HospitalAPageState();
 }
@@ -20,7 +26,7 @@ class _HospitalAPageState extends State<HospitalAPage> {
 
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
-  final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final SicknessService _sicknessService = SicknessService();
 
   bool _isLoading = false;
@@ -74,65 +80,74 @@ class _HospitalAPageState extends State<HospitalAPage> {
   }
 
   void _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final token = await _storage.read(key: "auth_token");
-      if (token != null) {
-        String sicknessTypesString = _selectedSicknessTypes.join(', ');
-        await _appointmentService.createAppointment(
-          token: token,
-          appointmentDate: _selectedDate!,
-          appointmentTime: _selectedTime!,
-          duration: _selectedDuration!,
-          typeOfSickness: sicknessTypesString,
-          additionalNotes: _additionalNotesController.text,
-          email: _emailController.text,
-          appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
-          statusAppointment: "Not Approved",
-          insuranceProvider: _insuranceProviderController.text, // New field
-          insurancePolicyNumber: _insurancePolicyNumberController.text, // New field
-          preferredLanguage: _preferredLanguageController.text // New field
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!')),
-        );
-
-        // Reset form fields after successful submission
-        setState(() {
-          _emailController.clear();
-          _selectedDate = null;
-          _selectedTime = null;
-          _selectedDuration = null;
-          _selectedSicknessTypes.clear();
-          _additionalNotesController.clear();
-          _dateController.clear();
-          _timeController.clear();
-          _appointmentCost = 0.0;
-        });
-        _formKey.currentState?.reset();
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to book appointment: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  if (!_formKey.currentState!.validate()) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please complete all required fields')),
+    );
+    return;
   }
+
+  // Check for essential appointment values
+  if (_selectedDate == null || _selectedTime == null || _selectedDuration == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please select date and time')),
+    );
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final token = await _storage.read(key: "auth_token");
+    if (token != null) {
+      String sicknessTypesString = _selectedSicknessTypes.join(', ');
+      await _appointmentService.createAppointment(
+        token: token,
+        appointmentDate: _selectedDate!,
+        appointmentTime: _selectedTime!,
+        duration: _selectedDuration!,
+        typeOfSickness: sicknessTypesString,
+        additionalNotes: _additionalNotesController.text,
+        email: _emailController.text,
+        appointmentCost: _appointmentCost,
+        statusPayment: "Not Paid",
+        statusAppointment: "Not Approved",
+        insuranceProvider: _insuranceProviderController.text,
+        insurancePolicyNumber: _insurancePolicyNumberController.text,
+        preferredLanguage: _preferredLanguageController.text,
+        //hospitalId: widget.hospitalId, // Ensure hospitalId is passed correctly
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointment booked successfully!')),
+      );
+
+      // Reset form fields after successful submission
+      setState(() {
+        _emailController.clear();
+        _selectedDate = null;
+        _selectedTime = null;
+        _selectedDuration = null;
+        _selectedSicknessTypes.clear();
+        _additionalNotesController.clear();
+        _dateController.clear();
+        _timeController.clear();
+        _appointmentCost = 0.0;
+      });
+      _formKey.currentState?.reset();
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to book appointment: ${e.toString()}')),
+    );
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -328,12 +343,11 @@ class _HospitalAPageState extends State<HospitalAPage> {
 
                     const SizedBox(height: 16),
 
-                    // Additional Notes Field
+                    // Insurance Policy Number Field
                     TextFormField(
-                      controller: _additionalNotesController,
+                      controller: _insuranceProviderController,
                       decoration: InputDecoration(
-                        labelText: 'Additional Notes',
-                        prefixIcon: const Icon(Icons.note_add),
+                        labelText: 'Insurance Provider',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -341,11 +355,25 @@ class _HospitalAPageState extends State<HospitalAPage> {
                     ),
                     const SizedBox(height: 16),
 
+
                     // Insurance Policy Number Field
                     TextFormField(
                       controller: _insurancePolicyNumberController,
                       decoration: InputDecoration(
-                        labelText: 'Insurance Policy Number (optional)',
+                        labelText: 'Insurance Policy Number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Additional Notes Field
+                    TextFormField(
+                      controller: _additionalNotesController,
+                      decoration: InputDecoration(
+                        labelText: 'Additional Notes',
+                        prefixIcon: const Icon(Icons.note_add),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
