@@ -428,6 +428,29 @@ app.get("/prescriptions/:userId", async (req, res) => {
   }
 });
 
+// Get hospital by name and fields
+app.get('/hospitals/:name/fields', async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ name: req.params.name });
+    
+    if (!hospital) {
+      console.log(`Hospital not found for name: ${req.params.name}`);
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+    
+    const responseFields = hospital.fields.map(field => ({
+      label: field.label,
+      type: field.type,
+      options: field.options || [], // Ensure options default to an empty array if none exist
+      required: field.required,
+    }));
+    
+    res.json({ fields: responseFields });
+  } catch (error) {
+    console.error('Error getting hospital fields:', error);
+    res.status(500).json({ message: 'Error getting hospital fields', error });
+  }
+});
 
 app.get("/appointments/:userId", async (req, res) => {
   try {

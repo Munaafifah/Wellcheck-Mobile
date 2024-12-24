@@ -34,7 +34,7 @@ class AppointmentService {
     required double appointmentCost,
     String statusPayment = "Not Paid", // Optional parameter
     String statusAppointment = "Not Approved", // Optional parameter
-    bool isTeleconsultation = false, // New parameter for teleconsultation
+    
     String? insuranceProvider, // Optional parameter for insurance provider
     String? insurancePolicyNumber, // Optional parameter for insurance policy number
     String? preferredLanguage, // Optional parameter for preferred language
@@ -60,7 +60,7 @@ class AppointmentService {
       "appointmentCost": appointmentCost,
       "statusPayment": statusPayment,
       "statusAppointment": statusAppointment,
-      "isTeleconsultation": isTeleconsultation, // Include teleconsultation
+
       "insuranceProvider": insuranceProvider, // Include insurance provider
       "insurancePolicyNumber": insurancePolicyNumber, // Include insurance policy number
       "preferredLanguage": preferredLanguage, // Include preferred language

@@ -5,7 +5,6 @@ import '../services/dashboard_service.dart';
 import '../models/dashboard_model.dart';
 import 'prescription_page.dart';
 import 'symptom_page.dart';
-import 'prediction_page.dart';
 import 'Healthstatus_page.dart';
 import '../pages/viewAppointment_page.dart';
 

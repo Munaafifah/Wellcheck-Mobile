@@ -19,9 +19,9 @@ class _HealthstatusPageState extends State<HealthstatusPage> {
   List<HealthstatusModel>? _healthstatus;
   List<HealthstatusModel>? _filteredHealthstatus;
   bool _hasError = false;
-  String _searchQuery = '';
+  final String _searchQuery = '';
   int _currentPage = 1;
-  int _itemsPerPage = 5; // Set the number of items to display per page
+  final int _itemsPerPage = 5; // Set the number of items to display per page
 
   @override
   void initState() {
