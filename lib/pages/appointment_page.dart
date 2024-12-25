@@ -17,24 +17,27 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _additionalNotesController = TextEditingController();
-  final TextEditingController _insuranceProviderController = TextEditingController();
-  final TextEditingController _insurancePolicyNumberController = TextEditingController();
-  final TextEditingController _preferredLanguageController = TextEditingController();
-  
+  final TextEditingController _additionalNotesController =
+      TextEditingController();
+  final TextEditingController _insuranceProviderController =
+      TextEditingController();
+  final TextEditingController _insurancePolicyNumberController =
+      TextEditingController();
+  final TextEditingController _preferredLanguageController =
+      TextEditingController();
+
   final _formKey = GlobalKey<FormState>();
   final AppointmentService _appointmentService = AppointmentService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final SicknessService _sicknessService = SicknessService(); 
+  final SicknessService _sicknessService = SicknessService();
   final HospitalService _hospitalService = HospitalService();
-
   List<Sickness> _sicknesses = []; // Holds fetched sickness types
-  
   bool _isLoading = false;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   String? _selectedDuration;
   String? _selectedHospital; // Selected hospital
+  String? _registeredHospital;
   double _appointmentCost = 0.0;
   final List<String> _hospitals = ['Hospital A', 'Hospital B'];
   final List<String> _selectedSicknessTypes = [];
@@ -58,7 +61,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
       for (String sicknessName in _selectedSicknessTypes) {
         final sickness = _sicknesses.firstWhere(
           (s) => s.name == sicknessName,
-          orElse: () => Sickness(appointmentId: '', name: '', appointmentPrice: 0.0),
+          orElse: () =>
+              Sickness(appointmentId: '', name: '', appointmentPrice: 0.0),
         );
         _appointmentCost += sickness.appointmentPrice; // Add to cost
       }
@@ -80,20 +84,20 @@ class _AppointmentPageState extends State<AppointmentPage> {
       if (token != null) {
         String sicknessTypesString = _selectedSicknessTypes.join(', ');
         await _appointmentService.createAppointment(
-          token: token,
-          appointmentDate: _selectedDate!,
-          appointmentTime: _selectedTime!,
-          duration: _selectedDuration!,
-          typeOfSickness: sicknessTypesString,
-          additionalNotes: _additionalNotesController.text,
-          email: _emailController.text,
-          appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
-          statusAppointment: "Not Approved",
-          insuranceProvider: _insuranceProviderController.text,
-          insurancePolicyNumber: _insurancePolicyNumberController.text,
-          preferredLanguage: _preferredLanguageController.text
-          );
+            token: token,
+            appointmentDate: _selectedDate!,
+            appointmentTime: _selectedTime!,
+            duration: _selectedDuration!,
+            registeredHospital: _registeredHospital,
+            typeOfSickness: sicknessTypesString,
+            additionalNotes: _additionalNotesController.text,
+            email: _emailController.text,
+            appointmentCost: _appointmentCost,
+            statusPayment: "Not Paid",
+            statusAppointment: "Not Approved",
+            insuranceProvider: _insuranceProviderController.text,
+            insurancePolicyNumber: _insurancePolicyNumberController.text,
+            preferredLanguage: _preferredLanguageController.text);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment booked successfully!')),
@@ -146,7 +150,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
       setState(() {});
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load sickness types: ${e.toString()}')),
+        SnackBar(
+            content: Text('Failed to load sickness types: ${e.toString()}')),
       );
     }
   }
@@ -163,7 +168,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
 
   Future<void> _loadDynamicFields(String hospitalName) async {
     try {
-      _dynamicFields = await _hospitalService.fetchFieldConfigurations(hospitalName);
+      _dynamicFields =
+          await _hospitalService.fetchFieldConfigurations(hospitalName);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load fields: ${e.toString()}')),
@@ -212,7 +218,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
                         );
                       }).toList(),
                       onChanged: _onHospitalSelected,
-                      validator: (value) => value == null ? 'Please select a hospital' : null,
+                      validator: (value) =>
+                          value == null ? 'Please select a hospital' : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -246,7 +253,6 @@ class _AppointmentPageState extends State<AppointmentPage> {
                         labelText: 'Appointment Date',
                         prefixIcon: const Icon(Icons.calendar_today),
                         border: OutlineInputBorder(
-                         
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -268,7 +274,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
                           });
                         }
                       },
-                      validator: (value) => _selectedDate == null ? 'Please select a date' : null,
+                      validator: (value) =>
+                          _selectedDate == null ? 'Please select a date' : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -296,7 +303,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
                           });
                         }
                       },
-                      validator: (value) => _selectedTime == null ? 'Please select a time' : null,
+                      validator: (value) =>
+                          _selectedTime == null ? 'Please select a time' : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -324,7 +332,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _submitForm,
                         child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
                             : const Text('Book Appointment'),
                       ),
                     ),
@@ -332,7 +341,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
                     // Appointment Cost Display
                     Text(
                       'Appointment Cost: RM${_appointmentCost.toStringAsFixed(2)}',
-                      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -366,7 +376,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
             if (date != null) {
               setState(() {
                 _selectedDate = date; // Assigning the selected date
-                _dateController.text = _selectedDate!.toLocal().toString().split(' ')[0];
+                _dateController.text =
+                    _selectedDate!.toLocal().toString().split(' ')[0];
               });
             }
           },
@@ -396,7 +407,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
               });
             }
           },
-          
+
           validator: field.required && _selectedSicknessTypes.isEmpty
               ? (value) => 'Please select at least one symptom'
               : null,
@@ -429,7 +440,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
           validator: field.required
-              ? (value) => value == null || value.isEmpty ? 'Field is required' : null
+              ? (value) =>
+                  value == null || value.isEmpty ? 'Field is required' : null
               : null,
         );
 

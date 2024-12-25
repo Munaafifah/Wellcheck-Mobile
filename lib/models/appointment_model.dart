@@ -18,7 +18,7 @@ class Appointment {
   final String? insuranceProvider; // New: Insurance provider info
   final String? insurancePolicyNumber; // New: Insurance policy number
   final String? preferredLanguage; // New: Preferred language for consultation
-  
+  final String registeredHospital; // New attribute for registered hospital
 
   Appointment({
     required this.appointmentId,
@@ -32,12 +32,12 @@ class Appointment {
     required this.additionalNotes,
     required this.email,
     required this.appointmentCost,
+    required this.registeredHospital, // Initialize the registeredHospital
     this.statusPayment = "Not Paid", // Initialized to "not paid"
     this.statusAppointment = "Not Approved", // Initialized to "scheduled"
     this.insuranceProvider,
     this.insurancePolicyNumber,
     this.preferredLanguage,
-
   });
 
   // Convert Appointment object to JSON for API calls
@@ -46,7 +46,7 @@ class Appointment {
       "appointmentId": appointmentId,
       "userId": userId,
       "doctorId": doctorId,
-      "hospitalId": hospitalId, // Include in JSON
+      "hospitalId": hospitalId, // Include hospitalId in JSON
       "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate),
       "appointmentTime":
           '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
@@ -55,12 +55,13 @@ class Appointment {
       'additionalNotes': additionalNotes,
       'email': email,
       'appointmentCost': appointmentCost,
-      'statusPayment': statusPayment, // Include in JSON
-      'statusAppointment': statusAppointment, // Include in JSON
+      'statusPayment': statusPayment,
+      'statusAppointment': statusAppointment,
       'insuranceProvider': insuranceProvider,
       'insurancePolicyNumber': insurancePolicyNumber,
       'preferredLanguage': preferredLanguage,
-
+      'registeredHospital':
+          registeredHospital, // Include registeredHospital in JSON
     };
   }
 
@@ -82,7 +83,7 @@ class Appointment {
       appointmentId: json["appointmentId"] ?? '',
       userId: json["userId"] ?? '',
       doctorId: json["doctorId"] ?? '',
-      hospitalId: json["hospitalId"] ?? '', // Parse hospitalId
+      hospitalId: json["hospitalId"] ?? '',
       appointmentDate: json['appointmentDate'] != null
           ? DateTime.tryParse(json['appointmentDate']) ?? DateTime.now()
           : DateTime.now(),
@@ -93,14 +94,13 @@ class Appointment {
           json['additionalNotes'] ?? 'No additional notes provided',
       email: json['email'] ?? 'No email provided',
       appointmentCost: (json['appointmentCost'] as num?)?.toDouble() ?? 0.0,
-      statusPayment:
-          json['statusPayment'] ?? 'Not paid', // Include in factory constructor
-      statusAppointment: json['statusAppointment'] ??
-          'Not Approved', // Include in factory constructor
-            insuranceProvider: json['insuranceProvider'],
+      statusPayment: json['statusPayment'] ?? 'Not paid',
+      statusAppointment: json['statusAppointment'] ?? 'Not Approved',
+      insuranceProvider: json['insuranceProvider'],
       insurancePolicyNumber: json['insurancePolicyNumber'],
       preferredLanguage: json['preferredLanguage'],
-
+      registeredHospital:
+          json['registeredHospital'] ?? '', // Parse registeredHospital
     );
   }
 

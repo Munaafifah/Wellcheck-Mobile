@@ -26,7 +26,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   String? _statusFilter;
   bool _isLoading = false;
   String? _errorMessage;
-
+  String? _selectedHospital;
   int _currentPage = 0;
   final int _itemsPerPage = 5;
 
@@ -79,28 +79,45 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     }
   }
 
-  void _filterAppointments({String? month, String? status}) {
+  void _filterAppointments({String? month, String? status, String? hospital}) {
     setState(() {
-      // Start with the full list of appointments
-      _filteredAppointments = _appointments;
+      if (_appointments == null) return;
 
-      // Filter by month if provided
-      if (month != null && month.isNotEmpty) {
+      _filteredAppointments = List.from(_appointments!);
+
+      // Filter by status if selected
+      if (_statusFilter != null && _statusFilter!.isNotEmpty) {
         _filteredAppointments = _filteredAppointments!.where((appointment) {
-          return appointment.appointmentDate.month.toString() == month;
+          return appointment.statusAppointment == _statusFilter;
         }).toList();
       }
 
-      // Filter by status if provided
-      if (status != null && status.isNotEmpty) {
+      // Filter by hospital if a specific hospital is selected
+      if (_selectedHospital != null && _selectedHospital!.isNotEmpty) {
         _filteredAppointments = _filteredAppointments!.where((appointment) {
-          return appointment.statusAppointment == status;
+          return appointment.registeredHospital == _selectedHospital;
+        }).toList();
+      }
+
+      // Filter by month if selected
+      if (_selectedMonth != null && _selectedMonth!.isNotEmpty) {
+        _filteredAppointments = _filteredAppointments!.where((appointment) {
+          return appointment.appointmentDate.month.toString() == _selectedMonth;
         }).toList();
       }
 
       // Reset to the first page when filters are applied
       _currentPage = 0;
     });
+  }
+
+  // Helper method to get unique hospitals from appointments
+  List<String> _getUniqueHospitals() {
+    if (_appointments == null) return [];
+    return _appointments!
+        .map((appointment) => appointment.registeredHospital)
+        .toSet()
+        .toList();
   }
 
   void _updateStatusFilter(String status) {
@@ -283,8 +300,11 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                 final token = await _storage.read(key: "auth_token");
                 if (token != null) {
                   // Call service method to update appointment
-                  await _appointmentService.updateAppointment(token,
-                      appointment.appointmentId, json.encode(updateData));
+                  await _appointmentService.updateAppointment(
+                      token,
+                      appointment.appointmentId,
+                      json.encode(updateData),
+                      _selectedHospital);
 
                   // Refresh appointments
                   _fetchAppointments();
@@ -354,6 +374,28 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
   }
 
   Widget buildAppointmentCard(Appointment appointment) {
+    TableRow buildTableRow(String label, String value,
+        {Color textColor = Colors.black}) {
+      return TableRow(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              value,
+              style: TextStyle(color: textColor),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -405,12 +447,11 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                     content: SingleChildScrollView(
                       child: Table(
                         columnWidths: const {
-                          0: const FlexColumnWidth(1),
-                          1: const FlexColumnWidth(2),
+                          0: FlexColumnWidth(1),
+                          1: FlexColumnWidth(2),
                         },
                         border: TableBorder.all(color: Colors.grey.shade300),
                         children: [
-                          // Appointment Status
                           TableRow(
                             decoration:
                                 BoxDecoration(color: Colors.grey.shade100),
@@ -438,39 +479,55 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                             ],
                           ),
 
-                          // Date and Time Information
-                          ...[
-                          _buildTableRow(
-                              "Date", appointment.getFormattedDate()),
-                          _buildTableRow(
-                              "Time", appointment.getFormattedTime()),
-                          _buildTableRow(
-                              "Duration", "${appointment.duration} mins"),
-                        ],
+                          // Conditional Attributes
+                          if (appointment.userId.isNotEmpty)
+                            buildTableRow("User ID", appointment.userId),
 
-                          // Medical Information
+                          if (appointment.hospitalId.isNotEmpty)
+                            buildTableRow(
+                                "Hospital ID", appointment.hospitalId),
+
+                          if (appointment.doctorId.isNotEmpty)
+                            buildTableRow("Doctor ID", appointment.doctorId),
+
+                          if (appointment.email.isNotEmpty)
+                            buildTableRow("Email", appointment.email),
+                          // Date and Time Information
+                          buildTableRow("Date", appointment.getFormattedDate()),
+                          buildTableRow("Time", appointment.getFormattedTime()),
+                          buildTableRow(
+                              "Duration", "${appointment.duration} mins"),
+
                           if (appointment.typeOfSickness.isNotEmpty)
-                            _buildTableRow(
+                            buildTableRow(
                                 "Type of Sickness", appointment.typeOfSickness),
 
-                          // Additional Notes
                           if (appointment.additionalNotes.isNotEmpty)
-                            _buildTableRow("Additional Notes",
+                            buildTableRow("Additional Notes",
                                 appointment.additionalNotes),
 
-                          // Contact Information
-                          if (appointment.email.isNotEmpty)
-                            _buildTableRow("Email", appointment.email),
+                          if (appointment.statusPayment.isNotEmpty)
+                            buildTableRow(
+                                "Payment Status", appointment.statusPayment),
 
-                          // Identifiers
-                          if (appointment.doctorId.isNotEmpty)
-                            _buildTableRow("Doctor ID", appointment.doctorId),
+                          if (appointment.insuranceProvider?.isNotEmpty ??
+                              false)
+                            buildTableRow("Insurance Provider",
+                                appointment.insuranceProvider!),
 
-                          if (appointment.userId.isNotEmpty)
-                            _buildTableRow("User ID", appointment.userId),
+                          if (appointment.insurancePolicyNumber?.isNotEmpty ??
+                              false)
+                            buildTableRow(
+                              "Insurance Policy Number",
+                              appointment.insurancePolicyNumber!,
+                            ),
 
-                          // Cost
-                          _buildTableRow("Cost",
+                          if (appointment.preferredLanguage?.isNotEmpty ??
+                              false)
+                            buildTableRow("Preferred Language",
+                                appointment.preferredLanguage!),
+
+                          buildTableRow("Cost",
                               "RM${appointment.appointmentCost.toStringAsFixed(2)}"),
                         ],
                       ),
@@ -542,6 +599,37 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       child: DropdownButtonFormField<String>(
+                        value:
+                            _selectedHospital == "" ? null : _selectedHospital,
+                        items: [
+                          const DropdownMenuItem<String>(
+                              value: null, // Change from empty string to null
+                              child: Text("All Hospitals")),
+                          ..._getUniqueHospitals().map((hospital) {
+                            return DropdownMenuItem(
+                              value: hospital,
+                              child: Text(hospital),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedHospital = value ?? ""; // Handle null case
+                          });
+                          _filterAppointments();
+                        },
+                        decoration: InputDecoration(
+                          labelText: "Filter by Hospital",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: DropdownButtonFormField<String>(
                         value: _selectedMonth,
                         items: const [
                           DropdownMenuItem(value: "", child: Text("All")),
@@ -566,7 +654,10 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                             _selectedMonth = value;
                           });
                           _filterAppointments(
-                              month: value, status: _statusFilter);
+                            month: value,
+                            status: _statusFilter,
+                            hospital: _selectedHospital,
+                          );
                         },
                         decoration: InputDecoration(
                           labelText: "Filter by Month",
@@ -586,9 +677,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               setState(() {
                                 _statusFilter = "Not Approved";
                               });
-                              _filterAppointments(
-                                  month: _selectedMonth,
-                                  status: "Not Approved");
+                              _filterAppointments();
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _statusFilter == "Not Approved"
@@ -623,8 +712,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               setState(() {
                                 _statusFilter = "Approved";
                               });
-                              _filterAppointments(
-                                  month: _selectedMonth, status: "Approved");
+                              _filterAppointments();
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _statusFilter == "Approved"
@@ -658,12 +746,10 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               setState(() {
                                 _statusFilter = null;
                               });
-                              _filterAppointments(
-                                  month: _selectedMonth, status: null);
+                              _filterAppointments();
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _statusFilter == null ||
-                                      _statusFilter!.isEmpty
+                              backgroundColor: _statusFilter == null
                                   ? const Color(0xFF4CAF93)
                                   : Colors.grey[300],
                               foregroundColor: Colors.black,
@@ -672,23 +758,18 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              elevation: _statusFilter == null ||
-                                      _statusFilter!.isEmpty
-                                  ? 6
-                                  : 2,
+                              elevation: _statusFilter == null ? 6 : 2,
                             ),
                             icon: Icon(
                               Icons.all_inclusive,
-                              color: _statusFilter == null ||
-                                      _statusFilter!.isEmpty
+                              color: _statusFilter == null
                                   ? Colors.white
                                   : Colors.black,
                             ),
                             label: Text(
                               "All",
                               style: TextStyle(
-                                color: _statusFilter == null ||
-                                        _statusFilter!.isEmpty
+                                color: _statusFilter == null
                                     ? Colors.white
                                     : Colors.black,
                               ),
