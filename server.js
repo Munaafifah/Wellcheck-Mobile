@@ -134,47 +134,66 @@ app.get("/prescriptions/:userId", async (req, res) => {
   
   const { v4: uuidv4 } = require("uuid"); // Add this for unique ID generation
 
-  app.get("/predictions/:userId", async (req, res) => {
+  app.post('/predictions2', async (req, res) => {
     try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-  
-      // Verify the token
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) {
+            return res.status(401).json({ error: "Unauthorized" });
         }
   
-        const userId = req.params.userId;
-        await client.connect();
-        const patients = client.db("Wellcheck2").collection("Patient");
+        jwt.verify(token, secretKey, async (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ error: "Invalid token" });
+            }
   
-        // Fetch the patient document
-        const patientDoc = await patients.findOne({ _id: userId });
-        if (!patientDoc || !patientDoc[userId]) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
+            const patients = client.db("Wellcheck2").collection("Patient");
+            const userId = decoded.userId;
+            const { diagnosisList, probabilityList, symptomsList, timestamp } = req.body;
   
-        const patient = patientDoc[userId];
-        // Access predictions data in the patient document
-        if (!patient.Prediction || Object.keys(patient.Prediction).length === 0) {
-          return res
-            .status(404)
-            .json({ error: "No predictions found for this patient" });
-        }
+            if (!diagnosisList || !probabilityList || !symptomsList) {
+                return res.status(400).json({ error: "Missing required fields" });
+            }
   
-        // Return all predictions as an array
-        const predictions = Object.values(patient.Prediction);
-        res.json(predictions);
-      });
+            // Auto-generate a unique predictionID
+            const predictionID = uuidv4();
+  
+            const predictionEntry = {
+                [`${predictionID}`]: {
+                    diagnosisList,
+                    probabilityList,
+                    symptomsList,
+                    predictionID,
+                    timestamp: timestamp || new Date().toISOString(),  // Use current timestamp if not provided
+                },
+            };
+  
+            console.log("User ID:", userId);
+            console.log("Prediction Entry:", predictionEntry);
+  
+            const result = await patients.updateOne(
+                { _id: userId },
+                { $set: { [`Prediction.${predictionID}`]: predictionEntry[predictionID] } },
+                { upsert: true }
+            );
+  
+            console.log("Update Result:", result);
+  
+            if (result.modifiedCount > 0 || result.upsertedCount > 0) {
+                const updatedPatient = await patients.findOne({ _id: userId });
+                res.status(200).json({
+                    message: "Prediction saved successfully",
+                    predictionID: predictionID,
+                    patient: updatedPatient,
+                });
+            } else {
+                res.status(404).json({ error: "Patient not found" });
+            }
+        });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Internal server error" });
+        console.error("Error saving prediction:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
   });
-
   app.get("/healthstatus/:userId", async (req, res) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];
