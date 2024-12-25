@@ -1,6 +1,6 @@
-// prediction2_page.dart (Updated UI to Reflect New Flow)
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import '../services/prediction_service.dart';
 import '../models/prediction_model.dart';
 
@@ -16,7 +16,6 @@ class _PredictionPageState extends State<PredictionPage> {
   bool isLoading = false;
   String result = "";
 
-  // Initialize FlutterSecureStorage
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   final List<String> symptomList = [
@@ -152,11 +151,21 @@ class _PredictionPageState extends State<PredictionPage> {
   ];
 
   void addSymptom(String symptom) {
-    if (!symptoms.contains(symptom) && symptoms.length < 5) {
+    if (!symptoms.contains(symptom)) {
       setState(() {
         symptoms.add(symptom);
       });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("${formatSymptom(symptom)} is already added.")),
+      );
     }
+  }
+
+  void removeSymptom(String symptom) {
+    setState(() {
+      symptoms.remove(symptom);
+    });
   }
 
   Future<void> submitSymptoms() async {
@@ -174,7 +183,6 @@ class _PredictionPageState extends State<PredictionPage> {
 
     try {
       final token = await _storage.read(key: "auth_token");
-
       if (token != null) {
         final PredictionModel? prediction =
             await PredictionService().sendSymptoms(token, symptoms);
@@ -182,24 +190,16 @@ class _PredictionPageState extends State<PredictionPage> {
         if (prediction != null) {
           setState(() {
             result = prediction.diagnosisList
-                .asMap()
-                .entries
-                .map(
-                  (e) => "${e.value}", // Keep the diagnosis as-is
-                )
+                .map((disease) => formatSymptom(disease))
                 .join("\n");
           });
-
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Prediction successful")),
+            const SnackBar(content: Text("Symptoms submitted successfully.")),
           );
         } else {
           setState(() {
             result = "Prediction failed.";
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Prediction failed")),
-          );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -210,9 +210,6 @@ class _PredictionPageState extends State<PredictionPage> {
       setState(() {
         result = "Error: $e";
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
     } finally {
       setState(() {
         isLoading = false;
@@ -220,45 +217,144 @@ class _PredictionPageState extends State<PredictionPage> {
     }
   }
 
+  /// Capitalizes the first letter of each word and replaces underscores with spaces
+  String formatSymptom(String symptom) {
+    return symptom
+        .replaceAll('_', ' ')  // Replace underscores
+        .split(' ')            // Split by spaces
+        .map((word) => word[0].toUpperCase() + word.substring(1)) // Capitalize
+        .join(' ');            // Join back into a sentence
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Disease Prediction")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF4CAF93),
+              Color(0xFF379B7E),
+              Color(0xFF1E7F68),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: Column(
           children: [
-            DropdownButton<String>(
-              value: symptoms.isEmpty ? null : symptoms.last,
-              hint: const Text("Select a Symptom"),
-              isExpanded: true,
-              onChanged: (value) {
-                if (value != null) {
-                  addSymptom(value);
-                }
-              },
-              items: symptomList
-                  .map((symptom) => DropdownMenuItem(
-                        value: symptom,
-                        child: Text(symptom),
-                      ))
-                  .toList(),
-            ),
-            Wrap(
-              children: symptoms.map((s) => Chip(label: Text(s))).toList(),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isLoading ? null : submitSymptoms,
-              child: Text(isLoading ? "Processing..." : "Submit"),
-            ),
-            if (result.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              Text(result, style: const TextStyle(fontSize: 16)),
-            ],
+            const SizedBox(height: 80),
+            _buildHeader(),
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            "Add Symptom",
+            style: TextStyle(color: Colors.white, fontSize: 30),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(40),
+          topRight: Radius.circular(40),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Select Your Symptoms",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          _buildSymptomDropdown(),
+          const SizedBox(height: 20),
+          _buildSelectedSymptomsList(),
+          const SizedBox(height: 20),
+          _buildSubmitButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSymptomDropdown() {
+    return DropdownSearch<String>(
+      items: symptomList.map((s) => formatSymptom(s)).toList(),
+      popupProps: const PopupProps.menu(
+        showSearchBox: true,
+      ),
+      dropdownDecoratorProps: DropDownDecoratorProps(
+        dropdownSearchDecoration: InputDecoration(
+          labelText: "Symptoms",
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
+      onChanged: (symptom) {
+        if (symptom != null) {
+          String originalSymptom = symptom.toLowerCase().replaceAll(' ', '_');
+          addSymptom(originalSymptom);
+        }
+      },
+    );
+  }
+
+  Widget _buildSelectedSymptomsList() {
+    return Column(
+      children: symptoms
+          .map((symptom) => ListTile(
+                title: Text(formatSymptom(symptom)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => removeSymptom(symptom),
+                ),
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return isLoading
+        ? const Center(
+            child: CircularProgressIndicator(),
+          )
+        : ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4CAF93),
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+            onPressed: submitSymptoms,
+            child: const Text(
+              "Submit Symptoms",
+              style: TextStyle(fontSize: 18, color: Colors.white),
+            ),
+          );
   }
 }
