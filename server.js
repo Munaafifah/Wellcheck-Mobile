@@ -154,37 +154,49 @@ app.get("/prescriptions/:userId", async (req, res) => {
                 return res.status(400).json({ error: "Missing required fields" });
             }
   
-            // Auto-generate a unique predictionID
             const predictionID = uuidv4();
-  
-            const predictionEntry = {
-                [`${predictionID}`]: {
-                    diagnosisList,
-                    probabilityList,
-                    symptomsList,
-                    predictionID,
-                    timestamp: timestamp || new Date().toISOString(),  // Use current timestamp if not provided
-                },
+            const newPrediction = {
+                diagnosisList,
+                probabilityList,
+                symptomsList,
+                predictionID,
+                timestamp: timestamp || new Date().toISOString(),
             };
   
-            console.log("User ID:", userId);
-            console.log("Prediction Entry:", predictionEntry);
+            // Find the patient by user ID
+            const existingPatient = await patients.findOne({ _id: userId });
   
-            const result = await patients.updateOne(
-                { _id: userId },
-                { $set: { [`Prediction.${predictionID}`]: predictionEntry[predictionID] } },
-                { upsert: true }
-            );
+            if (existingPatient) {
+                // Dynamically detect the first key (like "000", "001")
+                const patientKey = Object.keys(existingPatient).find(key => key !== '_id');
   
-            console.log("Update Result:", result);
+                if (patientKey) {
+                    const patientData = existingPatient[patientKey];
   
-            if (result.modifiedCount > 0 || result.upsertedCount > 0) {
-                const updatedPatient = await patients.findOne({ _id: userId });
-                res.status(200).json({
-                    message: "Prediction saved successfully",
-                    predictionID: predictionID,
-                    patient: updatedPatient,
-                });
+                    if (patientData.Prediction) {
+                        // If Prediction exists, append new entry to the existing object
+                        await patients.updateOne(
+                            { _id: userId },
+                            { $set: { [`${patientKey}.Prediction.${predictionID}`]: newPrediction } }
+                        );
+                    } else {
+                        // If Prediction doesn't exist, create a new Prediction object
+                        await patients.updateOne(
+                            { _id: userId },
+                            { $set: { [`${patientKey}.Prediction`]: { [predictionID]: newPrediction } } }
+                        );
+                    }
+  
+                    // Return updated patient data
+                    const updatedPatient = await patients.findOne({ _id: userId });
+                    res.status(200).json({
+                        message: "Prediction saved successfully",
+                        predictionID: predictionID,
+                        patient: updatedPatient,
+                    });
+                } else {
+                    res.status(404).json({ error: "No valid nested document found for patient" });
+                }
             } else {
                 res.status(404).json({ error: "Patient not found" });
             }
@@ -194,6 +206,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
   });
+  
   app.get("/healthstatus/:userId", async (req, res) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];
