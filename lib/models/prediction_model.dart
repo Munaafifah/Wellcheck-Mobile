@@ -1,7 +1,7 @@
 class PredictionModel {
   final String predictionID;
   final List<String> diagnosisList;
-  final List<double> probabilityList;
+  List<double> probabilityList;
   List<String> symptomsList;
   final DateTime timestamp;
 
@@ -16,17 +16,14 @@ class PredictionModel {
   // Factory constructor to create an instance from JSON
   factory PredictionModel.fromJson(Map<String, dynamic> json) {
     return PredictionModel(
-      predictionID:
-          json["predictionID"] ?? "unknown", // Default value if missing
-      diagnosisList: List<String>.from(
-          json["top_diseases"] ?? []), // Default to empty list if null
-      probabilityList:
-          List<double>.from((json["top_diseases"] ?? []).map((item) {
-        return double.parse(item.split(':')[1].replaceAll("%", ""));
-      })),
-      symptomsList: List<String>.from(
-          json["symptomsList"] ?? []), // Handle symptoms list safely
-      timestamp: DateTime.tryParse(json["timestamp"] ?? "") ?? DateTime.now(),
+      predictionID: json["predictionID"] ?? "unknown",  // Default if missing
+      diagnosisList: List<String>.from(json["top_diseases"] ?? []),  // Parse diseases
+      probabilityList: (json["probabilityList"] as List?)?.map((item) {
+        // Parse "83.00%" to double 83.0
+        return double.tryParse(item.replaceAll("%", "")) ?? 0.0;
+      }).toList() ?? [],  // Default to empty list if null
+      symptomsList: List<String>.from(json["symptomsList"] ?? []),  // Symptoms list
+      timestamp: DateTime.tryParse(json["timestamp"] ?? "") ?? DateTime.now(),  // Timestamp fallback
     );
   }
 
@@ -35,7 +32,7 @@ class PredictionModel {
     return {
       "predictionID": predictionID,
       "diagnosisList": diagnosisList,
-      "probabilityList": probabilityList,
+      "probabilityList": probabilityList.map((prob) => "$prob%").toList(),  // Reformat back to percentage string
       "symptomsList": symptomsList,
       "timestamp": timestamp.toIso8601String(),
     };

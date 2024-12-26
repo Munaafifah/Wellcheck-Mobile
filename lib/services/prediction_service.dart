@@ -12,13 +12,13 @@ class PredictionService {
       String token, List<String> symptoms) async {
     try {
       final Map<String, dynamic> payload = {
-        'symptoms': symptoms,  // Send symptoms list to Django
+        'symptoms': symptoms, // Send symptoms list to Django
       };
 
       final response = await http.post(
         Uri.parse(djangoApiUrl),
         headers: {
-          'Authorization': 'Bearer $token',  // Pass the token here
+          'Authorization': 'Bearer $token', // Pass the token here
           'Content-Type': 'application/json',
         },
         body: json.encode(payload),
@@ -26,17 +26,23 @@ class PredictionService {
 
       final Map<String, dynamic> data = json.decode(response.body);
 
-      if (data.containsKey("top_diseases")) {
+      if (data.containsKey("top_diseases") &&
+          data.containsKey("probabilityList")) {
         // Attach symptoms to the prediction model
         final prediction = PredictionModel.fromJson(data);
-        prediction.symptomsList = symptoms;  // Store the symptoms list
+        prediction.symptomsList = symptoms; // Store the symptoms list
+
+        // Extract probabilities from probabilityList and convert to numbers
+        prediction.probabilityList = (data['probabilityList'] as List)
+            .map((prob) => double.tryParse(prob.replaceAll("%", "")) ?? 0.0)
+            .toList();
 
         // Save prediction to MongoDB after receiving response from Django
-        await savePredictionToDB(token, prediction);  // Pass the token here
+        await savePredictionToDB(token, prediction); // Pass the token here
 
         return prediction;
       } else {
-        print("Key 'top_diseases' not found in response");
+        print("Key 'top_diseases' or 'probabilityList' not found in response");
         return null;
       }
     } catch (e) {
@@ -57,7 +63,7 @@ class PredictionService {
         Uri.parse(nodeApiUrl),
         headers: {
           'Authorization':
-              'Bearer $token',  // Pass the token to Node.js endpoint
+              'Bearer $token', // Pass the token to Node.js endpoint
           'Content-Type': 'application/json',
         },
         body: json.encode(payload),
