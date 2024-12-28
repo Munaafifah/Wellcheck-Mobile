@@ -610,7 +610,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                               value: hospital,
                               child: Text(hospital),
                             );
-                          }).toList(),
+                          }),
                         ],
                         onChanged: (value) {
                           setState(() {

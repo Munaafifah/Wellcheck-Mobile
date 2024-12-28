@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:session/pages/login_page.dart';
+import 'package:session/pages/payment.dart';
 import '../services/dashboard_service.dart';
 import '../models/dashboard_model.dart';
 import 'prescription_page.dart';
 import 'Healthstatus_page.dart';
 import '../pages/viewAppointment_page.dart';
 import 'prediction_page.dart';
+import 'makePayment.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userId;
@@ -235,6 +237,19 @@ class _DashboardPageState extends State<DashboardPage> {
               MaterialPageRoute(
                 builder: (context) =>
                     ViewAppointmentsPage(userId: widget.userId),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        _buildActionButton(
+          "Payments",
+          Icons.credit_card,
+          () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const Payment(),
               ),
             );
           },
