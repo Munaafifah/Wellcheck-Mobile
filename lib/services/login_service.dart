@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/login_model.dart';
+import '../config.dart';
 
 class LoginService {
-  static const String baseUrl = "http://localhost:5000";
+  static const String baseUrl = Config.baseUrl;
 
   Future<String?> login(LoginRequest request) async {
     final response = await http.post(

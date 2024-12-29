@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/hospital_model.dart'; // Ensure this path is correct
+import '../config.dart';
 
 class HospitalService {
-  static const String baseUrl = "http://localhost:5000"; // Replace with your API URL
+  static const String baseUrl = Config.baseUrl;
 
- 
-    final http.Client client; // Use an instance of http.Client for better management
+  final http.Client
+      client; // Use an instance of http.Client for better management
 
   HospitalService({http.Client? client}) : client = client ?? http.Client();
 
@@ -22,7 +23,8 @@ class HospitalService {
         return data.map((item) => Hospital.fromJson(item)).toList();
       } else {
         // Log the error for better debugging
-        print('Failed response: ${response.statusCode}, Body: ${response.body}');
+        print(
+            'Failed response: ${response.statusCode}, Body: ${response.body}');
         switch (response.statusCode) {
           case 404:
             throw Exception('No hospitals found');
@@ -32,8 +34,8 @@ class HospitalService {
             throw Exception('Failed to fetch hospitals: ${response.body}');
         }
       }
-       } on http.ClientException {
+    } on http.ClientException {
       throw Exception("Client error occurred");
-    } 
+    }
   }
 }

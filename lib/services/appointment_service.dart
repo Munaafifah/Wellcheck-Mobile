@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/appointment_model.dart';
 import 'package:flutter/material.dart';
+import '../config.dart';
 
 class AppointmentService {
-  static const String baseUrl =
-      "http://localhost:5000"; // Replace with your API URL
+  static const String baseUrl = Config.baseUrl; // Replace with your API URL
 
   // Helper method to handle API requests
   Future<http.Response> makeRequest(

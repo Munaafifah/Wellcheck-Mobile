@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/symptom_model.dart';
+import '../config.dart';
 
 class SymptomService {
-  static const String baseUrl = "http://localhost:5000";
+  static const String baseUrl = Config.baseUrl;
 
   Future<void> addSymptom(String token, String symptomDescription) async {
     final response = await http.post(

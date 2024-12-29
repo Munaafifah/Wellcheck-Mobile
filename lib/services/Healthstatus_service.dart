@@ -2,9 +2,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/Healthstatus_model.dart';
+import '../config.dart';
 
 class HealthstatusService {
-  static const String baseUrl = "http://localhost:5000";
+  static const String baseUrl = Config.baseUrl;
 
   Future<List<HealthstatusModel>> fetchHealthstatusById(
       String userId, String token) async {

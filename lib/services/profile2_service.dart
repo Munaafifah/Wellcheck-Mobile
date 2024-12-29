@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/profile2_model.dart';
+import '../config.dart';
 
 class Profile2Service {
-  static const String baseUrl = "http://10.0.2.2:5000";
+  static const String baseUrl = Config.baseUrl;
 
   Future<UserProfile?> fetchUser(String userId, String token) async {
     final response = await http.get(

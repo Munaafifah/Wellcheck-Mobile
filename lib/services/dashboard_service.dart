@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/dashboard_model.dart';
+import '../config.dart';
 
 class DashboardService {
-  static const String baseUrl = "http://localhost:5000";
+  static const String baseUrl = Config.baseUrl;
 
   Future<Patient?> fetchPatient(String userId, String token) async {
     final response = await http.get(

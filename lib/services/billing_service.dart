@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/billing_model.dart';
+import '../config.dart';
 
 class BillingService {
-  static const String baseUrl = "http://localhost:5000";
+  static const String baseUrl = Config.baseUrl;
 
   // Fetch billing data
   Future<Billing> fetchBilling(String userId) async {

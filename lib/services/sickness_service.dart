@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/sickness_model.dart'; // Ensure the correct import path
+import '../config.dart';
 
 class SicknessList extends StatefulWidget {
   const SicknessList({super.key});
@@ -11,7 +12,7 @@ class SicknessList extends StatefulWidget {
 }
 
 class SicknessService {
-  static const String baseUrl = 'http://localhost:5000'; // Your API URL
+  static const String baseUrl = Config.baseUrl;
 
   Future<List<Sickness>> fetchSicknesses() async {
     final response = await http.get(Uri.parse('$baseUrl/sickness'));
