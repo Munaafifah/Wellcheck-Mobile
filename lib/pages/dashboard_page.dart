@@ -8,7 +8,6 @@ import 'prescription_page.dart';
 import 'Healthstatus_page.dart';
 import '../pages/viewAppointment_page.dart';
 import 'prediction_page.dart';
-import 'makePayment.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userId;
