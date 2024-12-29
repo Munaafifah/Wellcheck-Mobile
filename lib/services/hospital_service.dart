@@ -1,27 +1,38 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/hospital_model.dart'; // Ensure this path is correct
+import '../models/hospital_model.dart';
 
 class HospitalService {
-  static const String baseUrl = "http://localhost:5000"; // Replace with your API URL
+  static const String baseUrl = "http://localhost:5000"; // You may want to configure this for different environments.
 
-  /// Fetch the field configuration for a specific hospital by its name.
-  Future<List<Field>> fetchFieldConfigurations(String hospitalName) async {
+  final http.Client client; // Use an instance of http.Client for better management
+
+  HospitalService({http.Client? client}) : client = client ?? http.Client();
+
+  Future<List<Hospital>> fetchHospitals() async {
     try {
-      final response = await http.get(
-        Uri.parse("$baseUrl/hospitals/$hospitalName/fields"), // Update with your actual endpoint
-      );
+      final response = await client
+          .get(Uri.parse('$baseUrl/hospitals'))
+          .timeout(const Duration(seconds: 10)); // Timeout after 10 seconds
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        List<dynamic> fieldsJson = data['fields'];
-        // Map the JSON response to a list of Field objects
-        return fieldsJson.map((field) => Field.fromJson(field)).toList();
+        // Parse the JSON successfully
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((item) => Hospital.fromJson(item)).toList();
       } else {
-        throw Exception('Failed to load field configurations: ${response.body}');
+        // Log the error for better debugging
+        print('Failed response: ${response.statusCode}, Body: ${response.body}');
+        switch (response.statusCode) {
+          case 404:
+            throw Exception('No hospitals found');
+          case 500:
+            throw Exception('Server error while fetching hospitals');
+          default:
+            throw Exception('Failed to fetch hospitals: ${response.body}');
+        }
       }
-    } catch (e) {
-      throw Exception('Error getting hospital fields: $e');
-    }
+    } on http.ClientException {
+      throw Exception("Client error occurred");
+    } 
   }
 }

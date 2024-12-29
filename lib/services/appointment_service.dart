@@ -32,12 +32,13 @@ class AppointmentService {
     required String additionalNotes,
     required String email,
     required double appointmentCost,
+    required String hospitalId,
     String statusPayment = "Not Paid", // Optional parameter
     String statusAppointment = "Not Approved", // Optional parameter
     
     String? insuranceProvider, // Optional parameter for insurance provider
     String? insurancePolicyNumber, // Optional parameter for insurance policy number
-    String? preferredLanguage, // Optional parameter for preferred language
+    
   }) async {
     final String formattedTime =
         '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
@@ -60,10 +61,10 @@ class AppointmentService {
       "appointmentCost": appointmentCost,
       "statusPayment": statusPayment,
       "statusAppointment": statusAppointment,
-
+      "hospitalId":hospitalId,
       "insuranceProvider": insuranceProvider, // Include insurance provider
       "insurancePolicyNumber": insurancePolicyNumber, // Include insurance policy number
-      "preferredLanguage": preferredLanguage, // Include preferred language
+      
     });
 
     // Handle response

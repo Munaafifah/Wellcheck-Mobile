@@ -428,27 +428,50 @@ app.get("/prescriptions/:userId", async (req, res) => {
   }
 });
 
-// Get hospital by name and fields
-app.get('/hospitals/:name/fields', async (req, res) => {
+app.get("/hospitals", async (req, res) => {
+  let client;
   try {
-    const hospital = await Hospital.findOne({ name: req.params.name });
-    
-    if (!hospital) {
-      console.log(`Hospital not found for name: ${req.params.name}`);
-      return res.status(404).json({ message: 'Hospital not found' });
+    client = await MongoClient.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    const hospitalsCollection = client.db("Wellcheck2").collection("hospitals");
+    const hospitals = await hospitalsCollection.find().toArray();
+
+    if (!hospitals.length) {
+      return res.status(404).json({ error: "No hospitals found" });
     }
-    
-    const responseFields = hospital.fields.map(field => ({
-      label: field.label,
-      type: field.type,
-      options: field.options || [], // Ensure options default to an empty array if none exist
-      required: field.required,
-    }));
-    
-    res.json({ fields: responseFields });
+
+    res.json(hospitals);
   } catch (error) {
-    console.error('Error getting hospital fields:', error);
-    res.status(500).json({ message: 'Error getting hospital fields', error });
+    console.error("Error fetching hospitals:", error.message); // Enhanced log to show actual error message
+    res.status(500).json({ error: "Failed to fetch hospitals. Details: " + error.message });
+  } finally {
+    if (client) {
+      await client.close(); // Ensure client connection is closed
+    }
+  }
+});
+
+// Endpoint to fetch fields for a specific hospital
+app.get("/hospitals/:hospitalId", async (req, res) => {
+  try {
+    await client.connect();
+    const hospitalsCollection = client.db("Wellcheck2").collection("hospitals");
+
+    const hospitalId = req.params.hospitalId;
+
+    // Fetch the hospital by ID, converting the id to ObjectId
+    const hospital = await hospitalsCollection.findOne({ _id: ObjectId(hospitalId) });
+
+    if (!hospital) {
+      return res.status(404).json({ error: "Hospital not found" }); // Adjusted error response
+    }
+
+    // Return the hospital's dynamic form fields
+    res.json(hospital.form_fields);
+  } catch (error) {
+    console.error("Error fetching hospital fields:", error);
+    res.status(500).json({ error: "Failed to fetch hospital fields" });
+  } finally {
+    await client.close(); // Ensure client connection is closed
   }
 });
 
@@ -487,41 +510,41 @@ app.get("/appointments/:userId", async (req, res) => {
   }
 });
 
-/// Endpoint for adding a new appointment
+
 // Endpoint for adding a new appointment
 app.post("/appointments", async (req, res) => {
   try {
-    // Extract token from Authorization header
+    // Extract the token from the Authorization header
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Verify JWT
+    // Verify the JWT
     let decoded;
     try {
-      decoded = jwt.verify(token, secretKey);
+      decoded = jwt.verify(token, secretKey); // Ensure secretKey is set up correctly
     } catch (err) {
       return res.status(401).json({ error: "Invalid token" });
     }
 
-    // Extract data from request body
+    // Extract data from the request body
     const {
       appointmentDate,
       appointmentTime,
       duration,
       typeOfSickness,
-      additionalNotes, // Optional field
+      additionalNotes,
       email,
       insuranceProvider,
       insurancePolicyNumber,
-      appointmentCost, // New field for cost
+      appointmentCost,
+      hospitalId, // Ensure this is included in the request body
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
-      
     } = req.body;
 
-    const userId = decoded.userId; // Assuming userId is in the JWT payload
+    const userId = decoded.userId; // Get userId from the JWT payload
 
     // Validate required fields
     if (
@@ -529,18 +552,17 @@ app.post("/appointments", async (req, res) => {
       !appointmentTime ||
       !duration ||
       !typeOfSickness ||
-      !email ||
-      !statusAppointment ||
-      appointmentCost == null 
+      !email
+      
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     try {
-      await client.connect();
+      await client.connect(); // Connect to MongoDB
       console.log("Connected to MongoDB");
 
-      // Fetch patient details
+      // Fetch patient details to get the assigned doctor
       const patients = client.db("Wellcheck2").collection("Patient");
       const patient = await patients.findOne({ _id: userId });
 
@@ -548,10 +570,9 @@ app.post("/appointments", async (req, res) => {
         return res.status(404).json({ error: "Patient not found" });
       }
 
-      const appointmentId = uuidv4();
-      // Access the assigned_doctor field
-      const doctorId = patient[userId]?.assigned_doctor;
-  
+      const appointmentId = uuidv4(); // Generate a new appointment ID
+      const doctorId = patient[userId]?.assigned_doctor; // Access the assigned doctor
+
       if (!doctorId) {
         return res.status(404).json({ error: "Assigned doctor not found" });
       }
@@ -575,19 +596,19 @@ app.post("/appointments", async (req, res) => {
         appointmentId,
         userId,
         doctorId,
-        
+        hospitalId, // Store the hospital ID here
         appointmentDate,
         appointmentTime,
         duration,
         typeOfSickness,
-        additionalNotes: additionalNotes || null, // If additionalNotes is empty or undefined, set to null
-        insuranceProvider:   insuranceProvider || null,
-        insurancePolicyNumber:  insurancePolicyNumber || null,
+        additionalNotes: additionalNotes || null,
+        insuranceProvider: insuranceProvider || null,
+        insurancePolicyNumber: insurancePolicyNumber || null,
         email,
         appointmentCost,
         statusPayment,
         statusAppointment,
-        timestamp: new Date(appointmentDate),
+        timestamp: new Date(appointmentDate), // Ensure timestamp is set correctly
       };
 
       // Insert appointment into the database
@@ -612,6 +633,10 @@ app.post("/appointments", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+
+
+
 
 
 

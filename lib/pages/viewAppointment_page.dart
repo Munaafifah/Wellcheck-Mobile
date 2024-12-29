@@ -780,7 +780,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    const AppointmentPage()), // Replace with your page
+                     AppointmentPage()), // Replace with your page
           );
         },
         backgroundColor: const Color(0xFF4CAF93),
