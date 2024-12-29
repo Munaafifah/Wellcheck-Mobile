@@ -8,6 +8,7 @@ import 'prescription_page.dart';
 import 'Healthstatus_page.dart';
 import '../pages/viewAppointment_page.dart';
 import 'prediction_page.dart';
+import '../pages/profile_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userId;
@@ -122,6 +123,25 @@ class _DashboardPageState extends State<DashboardPage> {
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.white),
+            onPressed: () {
+              // Navigate to ProfilePage with userId and token
+              _storage.read(key: "auth_token").then((token) {
+                if (token != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProfilePage(
+                        userId: widget.userId,
+                        token: token,
+                      ),
+                    ),
+                  );
+                }
+              });
+            },
           ),
         ],
       ),
