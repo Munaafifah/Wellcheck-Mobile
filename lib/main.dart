@@ -37,12 +37,8 @@ class MyApp extends StatelessWidget {
         builder: (context, snapshot) {
           // If session token exists, navigate to Dashboard
           if (snapshot.connectionState == ConnectionState.done) {
-            if (snapshot.data != null) {
-              return const DashboardPage(
-                  userId: ""); // You may add logic to fetch userId if stored.
-            } else {
-              return const LoginPage();
-            }
+            // Always navigate to LoginPage regardless of the token's existence
+            return const LoginPage();
           }
 
           // Show loading while checking authentication

@@ -220,10 +220,10 @@ class _PredictionPageState extends State<PredictionPage> {
   /// Capitalizes the first letter of each word and replaces underscores with spaces
   String formatSymptom(String symptom) {
     return symptom
-        .replaceAll('_', ' ')  // Replace underscores
-        .split(' ')            // Split by spaces
+        .replaceAll('_', ' ') // Replace underscores
+        .split(' ') // Split by spaces
         .map((word) => word[0].toUpperCase() + word.substring(1)) // Capitalize
-        .join(' ');            // Join back into a sentence
+        .join(' '); // Join back into a sentence
   }
 
   @override
@@ -289,6 +289,10 @@ class _PredictionPageState extends State<PredictionPage> {
             "Select Your Symptoms",
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
+          const Text(
+            "You can add more than 1 symptom",
+            style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+          ),
           const SizedBox(height: 20),
           _buildSymptomDropdown(),
           const SizedBox(height: 20),
@@ -330,10 +334,47 @@ class _PredictionPageState extends State<PredictionPage> {
                 title: Text(formatSymptom(symptom)),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => removeSymptom(symptom),
+                  onPressed: () => _showDeleteConfirmation(symptom),
                 ),
               ))
           .toList(),
+    );
+  }
+
+  void _showDeleteConfirmation(String symptom) {
+    String formattedSymptom = symptom
+        .replaceAll('_', ' ') // Replace underscores with spaces
+        .split(' ') // Split the string into words
+        .map((word) =>
+            word[0].toUpperCase() + word.substring(1)) // Capitalize each word
+        .join(' '); // Join words back into a single string
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Deletion"),
+          content: Text("Are you sure you want to delete '$formattedSymptom'?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                removeSymptom(symptom);
+                Navigator.of(context).pop(); // Close the dialog after deletion
+              },
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -350,11 +391,42 @@ class _PredictionPageState extends State<PredictionPage> {
                 borderRadius: BorderRadius.circular(30),
               ),
             ),
-            onPressed: submitSymptoms,
+            onPressed: () => _showSubmitConfirmation(),
             child: const Text(
               "Submit Symptoms",
               style: TextStyle(fontSize: 18, color: Colors.white),
             ),
           );
+  }
+
+  void _showSubmitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Submission"),
+          content:
+              const Text("Are you sure you want to submit these symptoms?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                submitSymptoms();
+                Navigator.of(context).pop(); // Close dialog after submission
+              },
+              child: const Text(
+                "Submit",
+                style: TextStyle(color: Colors.green),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
