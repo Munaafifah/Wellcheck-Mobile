@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:session/pages/constsPayment.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Stripe.publishableKey = stripePublishableKey;
+  try {
+    await Stripe.instance.applySettings();
+    print('Stripe initialized successfully');
+  } catch (e) {
+    print('Stripe initialization failed: $e');
+  }
+
   runApp(const MyApp());
 }
 
@@ -26,11 +37,8 @@ class MyApp extends StatelessWidget {
         builder: (context, snapshot) {
           // If session token exists, navigate to Dashboard
           if (snapshot.connectionState == ConnectionState.done) {
-            if (snapshot.data != null) {
-              return const DashboardPage(userId: ""); // You may add logic to fetch userId if stored.
-            } else {
-              return const LoginPage();
-            }
+            // Always navigate to LoginPage regardless of the token's existence
+            return const LoginPage();
           }
 
           // Show loading while checking authentication
