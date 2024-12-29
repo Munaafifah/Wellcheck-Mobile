@@ -10,8 +10,6 @@ app.use(bodyParser.json());
 app.use(cors());
 const port = 5001;
 
-
-
 const uri = "mongodb+srv://admin:admin@atlascluster.htlbqbu.mongodb.net/";
 const client = new MongoClient(uri);
 const secretKey = "your_secret_key"; // Replace with your secure key
@@ -696,6 +694,228 @@ app.post("/appointments", async (req, res) => {
 });
 
 
+// Fetch user details endpoint
+app.get("/user/:userId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify token
+    jwt.verify(token, "your_secret_key", async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const userId = req.params.userId;
+      await client.connect();
+      const users = client.db("Wellcheck2").collection("User");
+
+      // Fetch the user document and access the nested data
+      const userDoc = await users.findOne({ _id: userId });
+
+      if (!userDoc || !userDoc[userId]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const user = userDoc[userId];  // Access the nested user data
+      res.json({
+        password: user.password,
+        userId: user.userId
+      });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Update patient details endpoint
+app.put("/patient/:userId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify token
+    jwt.verify(token, "your_secret_key", async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const userId = req.params.userId;
+      const updates = req.body;
+      
+      await client.connect();
+      const patients = client.db("Wellcheck2").collection("Patient");
+
+      // Get the existing patient data
+      const existingPatient = await patients.findOne({ _id: userId });
+
+      if (!existingPatient) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      // Prepare update object by adding only the fields present in the update request
+      const updateData = {};
+      
+      // Update top-level fields if provided in the request
+      if (updates.address) updateData["A1.address"] = updates.address;
+      if (updates.contact) updateData["A1.contact"] = updates.contact;
+      if (updates.emergencyContact) updateData["A1.emergencyContact"] = updates.emergencyContact;
+      if (updates.name) updateData["A1.name"] = updates.name;
+
+      // Optionally, you can update HealthStatus or Prescription fields if provided
+      if (updates.HealthStatus) {
+        // You can add logic to update specific health status attributes
+        updateData["A1.HealthStatus"] = updates.HealthStatus;
+      }
+
+      if (updates.Prescription) {
+        // You can add logic to update specific prescription attributes
+        updateData["A1.Prescription"] = updates.Prescription;
+      }
+
+      // Perform the update operation
+      const result = await patients.updateOne(
+        { _id: userId },
+        { $set: updateData }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      res.json({ message: "Patient updated successfully" });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Update user details endpoint
+app.put("/user/:userId", async (req, res) => {
+  let connection = null;
+  
+  try {
+    // Token validation
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+    });
+
+    // Get database connection
+    connection = await getConnection();
+    const userId = req.params.userId;
+    const updates = req.body;
+
+    const userCollection = connection.db("Wellcheck2").collection("User");
+
+    // Create update object for changed fields
+    const updateFields = {};
+    Object.keys(updates).forEach(key => {
+      updateFields[`${userId}.${key}`] = updates[key];
+    });
+
+    const result = await userCollection.updateOne(
+      { _id: userId },
+      { $set: updateFields }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "User updated successfully" });
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: "Internal server error" });
+    
+    // If there's a connection error, reset the client
+    if (error.code === 'ECONNRESET') {
+      client = null;
+    }
+  }
+});
+
+// Image upload endpoint
+app.put("/user/uploadImage/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { profilepic } = req.body;  // Base64 image data
+
+    if (!profilepic) {
+      return res.status(400).json({ error: "Profile picture is required" });
+    }
+
+    await client.connect();
+    const users = client.db("Wellcheck2").collection("User");
+
+    const fieldPath = `${userId}.profilepic`;
+    
+    const result = await users.updateOne(
+      { _id: userId },
+      { $set: { [fieldPath]: profilepic } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ message: "Profile picture updated successfully" });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Increase the payload size limit (e.g., 10MB)
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
+app.get("/user/profileImage/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Connect to the database
+    await client.connect();
+    const users = client.db("Wellcheck2").collection("User");
+
+    // Fetch user by _id
+    const userDoc = await users.findOne({ _id: userId });
+
+    if (!userDoc || !userDoc[userId] || !userDoc[userId].profilepic) {
+      return res.status(404).json({ error: "Profile image not found" });
+    }
+
+    // Return the Base64 image
+    const profileImage = userDoc[userId].profilepic;
+    res.json({ profilepic: profileImage });
+  } catch (error) {
+    console.error("Error fetching profile image:", error);
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    await client.close();
+  }
+});
+
+// Add this shutdown handler
+process.on('SIGINT', async () => {
+  if (client) {
+    await client.close();
+  }
+  process.exit();
+})
 
   // Start the server
   app.listen(port, () => {
