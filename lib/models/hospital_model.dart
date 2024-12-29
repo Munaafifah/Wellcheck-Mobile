@@ -1,5 +1,5 @@
-import 'dart:convert';
-import 'package:flutter/material.dart';
+// import 'dart:convert';
+// import 'package:flutter/material.dart';
 
 class Hospital {
   final String id;
@@ -23,13 +23,14 @@ class HospitalFormField {
   final String label;
   final String type; // e.g., "text", "date", "dropdown"
   final bool required; // Whether this field is required
-  final List<String>? options; // Options for dropdowns or multi-selects
-
-  HospitalFormField({
-    required this.label,
+  final List<String>? options; 
+  
+  HospitalFormField({// Options for dropdowns or multi-selects
+  required this.label,
     required this.type,
     this.required = false,
     this.options,
+    
   });
 
   factory HospitalFormField.fromJson(Map<String, dynamic> json) {

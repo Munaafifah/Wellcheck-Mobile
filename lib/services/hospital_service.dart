@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/hospital_model.dart';
+import '../models/hospital_model.dart'; // Ensure this path is correct
 
 class HospitalService {
-  static const String baseUrl = "http://localhost:5000"; // You may want to configure this for different environments.
+  static const String baseUrl = "http://localhost:5000"; // Replace with your API URL
 
-  final http.Client client; // Use an instance of http.Client for better management
+ 
+    final http.Client client; // Use an instance of http.Client for better management
 
   HospitalService({http.Client? client}) : client = client ?? http.Client();
 
@@ -31,7 +32,7 @@ class HospitalService {
             throw Exception('Failed to fetch hospitals: ${response.body}');
         }
       }
-    } on http.ClientException {
+       } on http.ClientException {
       throw Exception("Client error occurred");
     } 
   }

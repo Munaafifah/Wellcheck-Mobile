@@ -6,6 +6,7 @@ class Appointment {
   final String userId;
   final String doctorId;
   final String hospitalId; // Added hospital association
+  final String registeredHospital;
   final DateTime appointmentDate;
   final TimeOfDay appointmentTime;
   final String duration;
@@ -18,8 +19,7 @@ class Appointment {
   final String? insuranceProvider; // New: Insurance provider info
   final String? insurancePolicyNumber; // New: Insurance policy number
   final String? preferredLanguage; // New: Preferred language for consultation
-  final String registeredHospital; // New attribute for registered hospital
-
+  
   Appointment({
     required this.appointmentId,
     required this.userId,
@@ -32,7 +32,7 @@ class Appointment {
     required this.additionalNotes,
     required this.email,
     required this.appointmentCost,
-    required this.registeredHospital, // Initialize the registeredHospital
+    required this.registeredHospital,
     this.statusPayment = "Not Paid", // Initialized to "not paid"
     this.statusAppointment = "Not Approved", // Initialized to "scheduled"
     this.insuranceProvider,
@@ -47,6 +47,7 @@ class Appointment {
       "userId": userId,
       "doctorId": doctorId,
       "hospitalId": hospitalId, // Include hospitalId in JSON
+      "registeredHospital":registeredHospital,
       "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate),
       "appointmentTime":
           '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
@@ -60,8 +61,7 @@ class Appointment {
       'insuranceProvider': insuranceProvider,
       'insurancePolicyNumber': insurancePolicyNumber,
       'preferredLanguage': preferredLanguage,
-      'registeredHospital':
-          registeredHospital, // Include registeredHospital in JSON
+      
     };
   }
 
@@ -84,6 +84,7 @@ class Appointment {
       userId: json["userId"] ?? '',
       doctorId: json["doctorId"] ?? '',
       hospitalId: json["hospitalId"] ?? '',
+      registeredHospital: json ["registeredHospital"] ?? '',
       appointmentDate: json['appointmentDate'] != null
           ? DateTime.tryParse(json['appointmentDate']) ?? DateTime.now()
           : DateTime.now(),
@@ -99,9 +100,7 @@ class Appointment {
       insuranceProvider: json['insuranceProvider'],
       insurancePolicyNumber: json['insurancePolicyNumber'],
       preferredLanguage: json['preferredLanguage'],
-      registeredHospital:
-          json['registeredHospital'] ?? '', // Parse registeredHospital
-    );
+          );
   }
 
   // Method to format the appointment date for display purposes

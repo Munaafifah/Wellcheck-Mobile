@@ -460,6 +460,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
   }
 });
 
+//Get hospitals
 app.get("/hospitals", async (req, res) => {
   let client;
   try {
@@ -497,6 +498,7 @@ app.get("/hospitals/:hospitalId", async (req, res) => {
       return res.status(404).json({ error: "Hospital not found" }); // Adjusted error response
     }
 
+    
     // Return the hospital's dynamic form fields
     res.json(hospital.form_fields);
   } catch (error) {
@@ -504,6 +506,30 @@ app.get("/hospitals/:hospitalId", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch hospital fields" });
   } finally {
     await client.close(); // Ensure client connection is closed
+  }
+});
+
+// Get hospital by name and fields
+app.get('/hospitals/:name/fields', async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ name: req.params.name });
+    
+    if (!hospital) {
+      console.log(`Hospital not found for name: ${req.params.name}`);
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+    
+    const responseFields = hospital.fields.map(field => ({
+      label: field.label,
+      type: field.type,
+      options: field.options || [], // Ensure options default to an empty array if none exist
+      required: field.required,
+    }));
+    
+    res.json({ fields: responseFields });
+  } catch (error) {
+    console.error('Error getting hospital fields:', error);
+    res.status(500).json({ message: 'Error getting hospital fields', error });
   }
 });
 
@@ -542,41 +568,41 @@ app.get("/appointments/:userId", async (req, res) => {
   }
 });
 
-
+/// Endpoint for adding a new appointment
 // Endpoint for adding a new appointment
 app.post("/appointments", async (req, res) => {
   try {
-    // Extract the token from the Authorization header
+    // Extract token from Authorization header
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Verify the JWT
+    // Verify JWT
     let decoded;
     try {
-      decoded = jwt.verify(token, secretKey); // Ensure secretKey is set up correctly
+      decoded = jwt.verify(token, secretKey);
     } catch (err) {
       return res.status(401).json({ error: "Invalid token" });
     }
 
-    // Extract data from the request body
+    // Extract data from request body
     const {
       appointmentDate,
       appointmentTime,
       duration,
       typeOfSickness,
-      additionalNotes,
+      additionalNotes, // Optional field
       email,
       insuranceProvider,
       insurancePolicyNumber,
-      appointmentCost,
-      hospitalId, // Ensure this is included in the request body
+      appointmentCost, // New field for cost
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
+      
     } = req.body;
 
-    const userId = decoded.userId; // Get userId from the JWT payload
+    const userId = decoded.userId; // Assuming userId is in the JWT payload
 
     // Validate required fields
     if (
@@ -584,17 +610,18 @@ app.post("/appointments", async (req, res) => {
       !appointmentTime ||
       !duration ||
       !typeOfSickness ||
-      !email
-      
+      !email ||
+      !statusAppointment ||
+      appointmentCost == null 
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     try {
-      await client.connect(); // Connect to MongoDB
+      await client.connect();
       console.log("Connected to MongoDB");
 
-      // Fetch patient details to get the assigned doctor
+      // Fetch patient details
       const patients = client.db("Wellcheck2").collection("Patient");
       const patient = await patients.findOne({ _id: userId });
 
@@ -602,9 +629,10 @@ app.post("/appointments", async (req, res) => {
         return res.status(404).json({ error: "Patient not found" });
       }
 
-      const appointmentId = uuidv4(); // Generate a new appointment ID
-      const doctorId = patient[userId]?.assigned_doctor; // Access the assigned doctor
-
+      const appointmentId = uuidv4();
+      // Access the assigned_doctor field
+      const doctorId = patient[userId]?.assigned_doctor;
+  
       if (!doctorId) {
         return res.status(404).json({ error: "Assigned doctor not found" });
       }
@@ -628,19 +656,20 @@ app.post("/appointments", async (req, res) => {
         appointmentId,
         userId,
         doctorId,
-        hospitalId, // Store the hospital ID here
+        hospitalId,
         appointmentDate,
         appointmentTime,
         duration,
+        registeredHospital,
         typeOfSickness,
-        additionalNotes: additionalNotes || null,
-        insuranceProvider: insuranceProvider || null,
-        insurancePolicyNumber: insurancePolicyNumber || null,
+        additionalNotes: additionalNotes || null, // If additionalNotes is empty or undefined, set to null
+        insuranceProvider:   insuranceProvider || null,
+        insurancePolicyNumber:  insurancePolicyNumber || null,
         email,
         appointmentCost,
         statusPayment,
         statusAppointment,
-        timestamp: new Date(appointmentDate), // Ensure timestamp is set correctly
+        timestamp: new Date(appointmentDate),
       };
 
       // Insert appointment into the database
@@ -665,10 +694,6 @@ app.post("/appointments", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
-
-
 
 
 

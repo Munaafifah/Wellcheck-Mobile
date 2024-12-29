@@ -1,14 +1,17 @@
 
 import 'package:flutter/material.dart';
-import '../services/hospital_service.dart';
-import '../models/hospital_model.dart';
-import '../models/sickness_model.dart';
-import '../models/appointment_model.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/appointment_service.dart';
 import '../services/sickness_service.dart';
 import '../services/appointment_service.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/hospital_service.dart';
+import '../models/sickness_model.dart';
+import '../models/hospital_model.dart'; // Ensure this file exists and it's correctly defined
+import '../models/appointment_model.dart';
 
 class AppointmentPage extends StatefulWidget {
+  const AppointmentPage({super.key});
+
   @override
   _AppointmentPageState createState() => _AppointmentPageState();
 }
@@ -67,6 +70,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 }
 
+
 class AppointmentFormScreen extends StatefulWidget {
   final Hospital hospital;
   final Future<List<Sickness>>
@@ -84,33 +88,26 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _additionalNotesController =
-      TextEditingController();
-  final TextEditingController _insuranceProviderController =
-      TextEditingController();
-  final TextEditingController _insurancePolicyNumberController =
-      TextEditingController();
+  final TextEditingController _additionalNotesController = TextEditingController();
+  final TextEditingController _insuranceProviderController =TextEditingController();
+  final TextEditingController _insurancePolicyNumberController = TextEditingController();
 
   final SicknessService _sicknessService = SicknessService();
   final AppointmentService _appointmentService = AppointmentService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final SicknessService _sicknessService = SicknessService(); 
-  final HospitalService _hospitalService = HospitalService();
 
-  List<Sickness> _sicknesses = []; // Holds fetched sickness types
-  
-  bool _isLoading = false;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isLoading = false;
   double _appointmentCost = 0.0;
   String? _selectedDuration;
+  String? _registeredHospital;
   List<String> _selectedSicknessTypes = [];
+  
   List<Sickness> _sicknesses = []; // Initialize the sickness list
 
   String get hospitalId => widget.hospital.id;
 
-  @override
   void initState() {
     super.initState();
     _loadSicknesses(); // Load sicknesses when the screen initializes
@@ -131,123 +128,17 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
   void _calculateCost() {
     setState(() {
+
       _appointmentCost = 0.0; // Reset before recalculating
       for (String sicknessName in _selectedSicknessTypes) {
         final sickness = _sicknesses.firstWhere(
           (s) => s.name == sicknessName,
-          orElse: () =>
+orElse: () =>
               Sickness(appointmentId: '', name: '', appointmentPrice: 0.0),
         );
         _appointmentCost += sickness.appointmentPrice; // Add to cost
       }
     });
-  }
-
-  void _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final token = await _storage.read(key: "auth_token");
-      if (token != null) {
-        String sicknessTypesString = _selectedSicknessTypes.join(', ');
-        await _appointmentService.createAppointment(
-          token: token,
-          appointmentDate: _selectedDate!,
-          appointmentTime: _selectedTime!,
-          duration: _selectedDuration!,
-          typeOfSickness: sicknessTypesString,
-          additionalNotes: _additionalNotesController.text,
-          email: _emailController.text,
-          appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
-          statusAppointment: "Not Approved",
-          insuranceProvider: _insuranceProviderController.text,
-          insurancePolicyNumber: _insurancePolicyNumberController.text,
-          preferredLanguage: _preferredLanguageController.text
-          );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!')),
-        );
-
-        // Reset form fields after successful submission
-        _resetForm();
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to book appointment: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Resetting form fields
-  void _resetForm() {
-    setState(() {
-      _emailController.clear();
-      _dateController.clear();
-      _timeController.clear();
-      _additionalNotesController.clear();
-      _insuranceProviderController.clear();
-      _insurancePolicyNumberController.clear();
-      _preferredLanguageController.clear();
-      _selectedHospital = null;
-      _selectedDate = null;
-      _selectedTime = null;
-      _selectedDuration = null;
-      _selectedSicknessTypes.clear();
-      _appointmentCost = 0.0;
-      _dynamicFields.clear(); // Clear the dynamic fields
-    });
-    _formKey.currentState?.reset();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSicknesses(); // Load sickness types
-  }
-
-  Future<void> _loadSicknesses() async {
-    try {
-      _sicknesses = await _sicknessService.fetchSicknesses();
-      setState(() {});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load sickness types: ${e.toString()}')),
-      );
-    }
-  }
-
-  // Loading dynamic fields based on selected hospital
-  void _onHospitalSelected(String? selectedValue) async {
-    if (selectedValue != null) {
-      setState(() {
-        _selectedHospital = selectedValue; // Store the selected hospital
-      });
-      await _loadDynamicFields(selectedValue); // Load fields from the database
-    }
-  }
-
-  Future<void> _loadDynamicFields(String hospitalName) async {
-    try {
-      _dynamicFields = await _hospitalService.fetchFieldConfigurations(hospitalName);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load fields: ${e.toString()}')),
-      );
-    }
-    setState(() {});
   }
 
   @override
@@ -547,9 +438,9 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
+        const SnackBar(content: Text('Please fill all required fields.')),
       );
-      return;
+        return;
     }
 
     if (_selectedDate == null ||
@@ -575,25 +466,24 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
       if (token != null) {
         // Create an appointment instance using the Appointment model
         Appointment newAppointment = Appointment(
-          appointmentId:
-              '', // You may want to leave this blank for the API to generate.
-          userId:
-              '', // Set this to the current user's ID, likely from your auth token or storage
+          appointmentId:'', // You may want to leave this blank for the API to generate.
+          userId:'', // Set this to the current user's ID, likely from your auth token or storage
           doctorId: '', // If needed, you should provide this value
-          hospitalId:
-              hospitalId, // Ensure this value is passed from the UI to the model
+          hospitalId:hospitalId, // Ensure this value is passed from the UI to the model
+          registeredHospital: _registeredHospital!,
           appointmentDate: _selectedDate!,
           appointmentTime: _selectedTime!,
           duration: _selectedDuration!,
           typeOfSickness: sicknessTypesString,
           additionalNotes: _additionalNotesController.text,
           email: _emailController.text,
-          appointmentCost: _appointmentCost,
-          statusPayment: "Not Paid",
+          appointmentCost:_appointmentCost,
           statusAppointment: "Not Approved",
+          statusPayment: "Not Paid",
           insuranceProvider: _insuranceProviderController.text,
           insurancePolicyNumber: _insurancePolicyNumberController.text,
-        );
+          
+          );
 
         // Call the appointment service to create the appointment
         await _appointmentService.createAppointment(
@@ -616,15 +506,14 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           const SnackBar(content: Text('Appointment booked successfully!')),
         );
 
-        _resetForm(); // Reset form fields after success
-      }
+        }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to book appointment: ${e.toString()}')),
-      );
+       SnackBar(content: Text('Error occurred: ${e.toString()}')),
+  );
     } finally {
       setState(() {
-        _isLoading = false; // Stop loading
+       _isLoading = false; // Stop loading
       });
     }
   }
@@ -632,8 +521,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   void _resetForm() {
     setState(() {
       _emailController.clear();
-      _dateController.clear();
-      _timeController.clear();
+
+
       _additionalNotesController.clear();
       _insuranceProviderController.clear();
       _insurancePolicyNumberController.clear();
@@ -642,7 +531,12 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
       _selectedDuration = null;
       _selectedSicknessTypes.clear();
       _appointmentCost = 0.0;
-    });
+      });
     _formKey.currentState?.reset();
   }
+
 }
+
+
+
+  
