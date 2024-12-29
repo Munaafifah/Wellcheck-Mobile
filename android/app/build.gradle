@@ -21,11 +21,11 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        minSdkVersion 21
+        minSdkVersion 23
         applicationId = "com.example.session"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -42,9 +42,4 @@ android {
 
 flutter {
     source = "../.."
-}
-
-dependencies {
-    implementation 'com.google.android.gms:play-services-wallet:18.1.3'
-    implementation 'com.stripe:stripe-android:20.25.1'
 }
