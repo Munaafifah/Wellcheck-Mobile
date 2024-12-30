@@ -120,28 +120,34 @@ class _DashboardPageState extends State<DashboardPage> {
             "Dashboard",
             style: TextStyle(color: Colors.white, fontSize: 30),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: _logout,
-          ),
-          IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.white),
-            onPressed: () {
-              // Navigate to ProfilePage with userId and token
-              _storage.read(key: "auth_token").then((token) {
-                if (token != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProfilePage(
-                        userId: widget.userId,
-                        token: token,
-                      ),
-                    ),
-                  );
-                }
-              });
-            },
+          // Add some spacing between Profile and Logout icons
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.account_circle, color: Colors.white),
+                onPressed: () {
+                  // Navigate to ProfilePage with userId and token
+                  _storage.read(key: "auth_token").then((token) {
+                    if (token != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfilePage(
+                            userId: widget.userId,
+                            token: token,
+                          ),
+                        ),
+                      );
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 20), // Adjust spacing here
+              IconButton(
+                icon: const Icon(Icons.logout, color: Colors.white),
+                onPressed: _logout,
+              ),
+            ],
           ),
         ],
       ),
