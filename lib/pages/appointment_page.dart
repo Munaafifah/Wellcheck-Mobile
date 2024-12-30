@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../services/sickness_service.dart';
-import '../services/appointment_service.dart';
 import '../services/hospital_service.dart';
 import '../models/sickness_model.dart';
 import '../models/hospital_model.dart'; // Ensure this file exists and it's correctly defined
