@@ -848,6 +848,55 @@ app.put("/user/:userId", async (req, res) => {
   }
 });
 
+
+// Edit password endpoint
+app.put("/user/:userId/password", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify token
+    jwt.verify(token, "your_secret_key", async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const userId = req.params.userId;
+      const { newPassword } = req.body;
+
+      // Check if newPassword is provided
+      if (!newPassword) {
+        return res.status(400).json({ error: "New password is required" });
+      }
+
+      await client.connect();
+      const users = client.db("Wellcheck2").collection("User");
+
+      // Update the password field directly
+      const updateResult = await users.updateOne(
+        { _id: userId },
+        { $set: { [`${userId}.password`]: newPassword } }
+      );
+
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (updateResult.modifiedCount === 0) {
+        return res.status(400).json({ error: "Password update failed" });
+      }
+
+      res.json({ message: "Password updated successfully" });
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
 // Image upload endpoint
 app.put("/user/uploadImage/:userId", async (req, res) => {
   try {
@@ -908,6 +957,41 @@ app.get("/user/profileImage/:userId", async (req, res) => {
     await client.close();
   }
 });
+
+// Verify password endpoint
+app.post("/verify-password", async (req, res) => {
+  try {
+    const { userId, password } = req.body;
+
+    if (!userId || !password) {
+      return res.status(400).json({ error: "User ID and password are required" });
+    }
+
+    // Connect to the database
+    await client.connect();
+    const users = client.db("Wellcheck2").collection("User");
+
+    // Fetch the user document
+    const userDoc = await users.findOne({ _id: userId });
+
+    if (!userDoc || !userDoc[userId]) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = userDoc[userId]; // Access the nested user data
+
+    // Compare passwords
+    if (user.password === password) {
+      return res.status(200).json({ message: "Password verified successfully" });
+    } else {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+  } catch (error) {
+    console.error("Error verifying password:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 // Add this shutdown handler
 process.on('SIGINT', async () => {

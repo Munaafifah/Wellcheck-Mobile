@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/profile2_model.dart';
 import '../config.dart';
+import 'package:dio/dio.dart';
 
 class Profile2Service {
+  final Dio _dio = Dio();
   static const String baseUrl = Config.baseUrl;
 
   Future<UserProfile?> fetchUser(String userId, String token) async {
@@ -58,31 +60,30 @@ Future<bool> updateUser(String userId, UserProfile updatedProfile, String token)
 
 /// Update user password
   Future<bool> updatePassword(String userId, String newPassword, String token) async {
-    final url = Uri.parse('$baseUrl/update_password');
+  final url = Uri.parse('$baseUrl/user/$userId/password');
 
-    try {
-      final response = await http.patch(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'userId': userId,
-          'password': newPassword,
-        }),
-      );
+  try {
+    final response = await http.put(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'newPassword': newPassword}),
+    );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        throw Exception('Failed to update password');
-      }
-    } catch (e) {
-      print("Error updating password: $e");
-      rethrow;
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print("Error: ${response.statusCode}, Body: ${response.body}");
+      return false;
     }
+  } catch (e) {
+    print("Error updating password: $e");
+    return false;
   }
+}
+
 
   // Update user profile image (with image as Base64 string)
 Future<bool> uploadProfileImage(String userId, String base64Image, String token) async {
@@ -127,6 +128,22 @@ Future<String?> fetchProfileImage(String userId, String token) async {
     return null;
   }
 }
+
+  Future<bool> verifyPassword(String userId, String currentPassword, String token) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/verify-password',
+        data: {
+          'userId': userId,
+          'password': currentPassword,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 
 
 }

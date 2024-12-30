@@ -30,22 +30,28 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isPasswordVisible = false;
   bool isCredentialsValidated = false;
   bool isUploading = false;
+  bool isChangingPassword = false;
 
   File? _selectedImage;
   final ImagePicker _imagePicker = ImagePicker();
 
-  // Text controllers
+  // Text controllers for profile
   late TextEditingController nameController;
   late TextEditingController addressController;
   late TextEditingController contactController;
   late TextEditingController emergencyContactController;
   late TextEditingController userIdController;
-  late TextEditingController passwordController;
   late TextEditingController oldUserIdController;
   late TextEditingController oldPasswordController;
 
+  // Text controllers for password change
+  final TextEditingController _oldPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
   final ProfileService _patientService = ProfileService();
   final Profile2Service _userService = Profile2Service();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -55,14 +61,28 @@ class _ProfilePageState extends State<ProfilePage> {
     contactController = TextEditingController();
     emergencyContactController = TextEditingController();
     userIdController = TextEditingController();
-    passwordController = TextEditingController();
     oldUserIdController = TextEditingController();
     oldPasswordController = TextEditingController();
     fetchProfiles();
     fetchAndDisplayProfileImage();
   }
 
-  // New method to fetch and display profile image
+  @override
+  void dispose() {
+    nameController.dispose();
+    addressController.dispose();
+    contactController.dispose();
+    emergencyContactController.dispose();
+    userIdController.dispose();
+    oldUserIdController.dispose();
+    oldPasswordController.dispose();
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  // Image handling methods
   Future<void> fetchAndDisplayProfileImage() async {
     try {
       final imageBase64 = await _userService.fetchProfileImage(widget.userId, widget.token);
@@ -73,11 +93,9 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       print("Error fetching profile image: $e");
-      // Silently fail as this is not critical functionality
     }
   }
 
-  // New method to decode Base64 to File
   File decodeBase64ToFile(String base64String) {
     try {
       final bytes = base64Decode(base64String.split(',').last);
@@ -93,21 +111,17 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<String> compressAndConvertToBase64(File file) async {
     try {
       final rawImage = img.decodeImage(await file.readAsBytes());
+      if (rawImage == null) throw Exception("Failed to decode image.");
       
-      if (rawImage == null) {
-        throw Exception("Failed to decode image.");
-      }
-
       final resizedImage = img.copyResize(rawImage, width: 300);
       final compressedImage = img.encodeJpg(resizedImage, quality: 80);
-      String base64Image = base64Encode(compressedImage);
-      print("Compressed Base64 Length: ${base64Image.length}");
-      return base64Image;
+      return base64Encode(compressedImage);
     } catch (e) {
       throw Exception("Error during compression or encoding: $e");
     }
   }
 
+  // Profile management methods
   Future<void> fetchProfiles() async {
     try {
       final patient = await _patientService.fetchPatient(widget.userId, widget.token);
@@ -126,179 +140,137 @@ class _ProfilePageState extends State<ProfilePage> {
         }
         if (user != null) {
           userIdController.text = user.userId ?? '';
-          passwordController.text = user.password ?? '';
         }
       });
     } catch (e) {
-      print("Error fetching profiles: $e");
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
       showError('Failed to load profile data');
     }
   }
 
-  Future<void> validateCredentials() async {
-    if (oldUserIdController.text == userProfile?.userId &&
-        oldPasswordController.text == userProfile?.password) {
-      setState(() {
-        isCredentialsValidated = true;
-      });
-      showSuccess('Credentials validated. You can now update your userId and password.');
-    } else {
-      showError('Invalid credentials. Please try again.');
-    }
-  }
-
   Future<void> updateProfiles() async {
-  try {
-    // Prepare the updated patient (personal) profile
-    final updatedPatient = PatientProfile(
-      name: nameController.text,
-      address: addressController.text,
-      contact: contactController.text,
-      emergencyContact: emergencyContactController.text,
-    );
+    try {
+      final updatedPatient = PatientProfile(
+        name: nameController.text,
+        address: addressController.text,
+        contact: contactController.text,
+        emergencyContact: emergencyContactController.text,
+      );
 
-    // Prepare the updated user (account) profile
-    final updatedUser = UserProfile(
-      userId: isCredentialsValidated ? userIdController.text : userProfile?.userId,
-      password: isCredentialsValidated ? passwordController.text : userProfile?.password,
-    );
+      final updatedUser = UserProfile(
+        userId: isCredentialsValidated ? userIdController.text : userProfile?.userId,
+        password: userProfile?.password,
+      );
 
-    // Call update API for patient (personal) profile
-    final patientSuccess = await _patientService.updatePatient(
-      widget.userId,
-      updatedPatient,
-      widget.token,
-    );
+      final patientSuccess = await _patientService.updatePatient(
+        widget.userId,
+        updatedPatient,
+        widget.token,
+      );
 
-    // Call update API for user (account) profile
-    final userSuccess = await _userService.updateUser(
-      widget.userId,
-      updatedUser,
-      widget.token,
-    );
+      final userSuccess = await _userService.updateUser(
+        widget.userId,
+        updatedUser,
+        widget.token,
+      );
 
-    // Log the responses for debugging
-    print("Patient Update Success: $patientSuccess");
-    print("User Update Success: $userSuccess");
-
-    // Show messages based on whether personal information was updated
-    if (patientSuccess == true) {
-      showSuccess('Personal information updated successfully');
-    } else if (updatedPatient.name != patientProfile?.name ||
-        updatedPatient.address != patientProfile?.address ||
-        updatedPatient.contact != patientProfile?.contact ||
-        updatedPatient.emergencyContact != patientProfile?.emergencyContact) {
-      // If personal info was changed but update failed
-      showError('Failed to update personal information');
+      if (patientSuccess && userSuccess) {
+        showSuccess('Profile updated successfully');
+        setState(() {
+          isCredentialsValidated = false;
+          oldUserIdController.clear();
+          oldPasswordController.clear();
+        });
+      } else {
+        showError('Failed to update some profile information');
+      }
+    } catch (e) {
+      showError('Error updating profile');
     }
-
-    // Show messages based on whether account information was updated
-    if (userSuccess == true) {
-      showSuccess('Account information updated successfully');
-    } else if (updatedUser.userId != userProfile?.userId ||
-        updatedUser.password != userProfile?.password) {
-      // If account info was changed but update failed
-      showError('Failed to update account information');
-    }
-
-    // If both updates succeed, reset the validation state and clear fields
-    if (patientSuccess == true && userSuccess == true) {
-      setState(() {
-        isCredentialsValidated = false;
-        oldUserIdController.clear();
-        oldPasswordController.clear();
-      });
-    }
-
-  } catch (e) {
-    print("Error updating profiles: $e");
-    showError('Error updating profile');
   }
-}
 
-void showSuccess(String message) {
+  // Password change methods
+  Future<void> _changePassword() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        // First verify current password
+        bool isVerified = await _userService.verifyPassword(
+          widget.userId,
+          _oldPasswordController.text,
+          widget.token,
+        );
+
+        if (!isVerified) {
+          showError('Current password is incorrect');
+          return;
+        }
+
+        // If verified, proceed with password update
+        bool isSuccess = await _userService.updatePassword(
+          widget.userId,
+          _newPasswordController.text,
+          widget.token,
+        );
+
+        if (isSuccess) {
+          showSuccess('Password updated successfully');
+          setState(() => isChangingPassword = false);
+          _clearPasswordFields();
+        } else {
+          showError('Failed to update password');
+        }
+      } catch (e) {
+        showError('Error updating password');
+      }
+    }
+  }
+
+  void _clearPasswordFields() {
+    _oldPasswordController.clear();
+    _newPasswordController.clear();
+    _confirmPasswordController.clear();
+  }
+
+  // UI Feedback methods
+  void showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   void showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
-  Future<void> pickImageAndUpload() async {
-    final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-        isUploading = true;
-      });
-
-      try {
-        final base64Image = await compressAndConvertToBase64(_selectedImage!);
-        bool uploadSuccess = await _userService.uploadProfileImage(
-          widget.userId, base64Image, widget.token);
-
-        if (uploadSuccess) {
-          showSuccess('Profile image uploaded successfully');
-        } else {
-          showError('Failed to upload profile image');
-        }
-      } catch (e) {
-        print("Error uploading image: $e");
-        showError('Error uploading image');
-      } finally {
-        setState(() {
-          isUploading = false;
-        });
-      }
-    } else {
-      showError('No image selected');
-    }
-  }
-
-  
-
+  // Dialogs
   Future<void> _showCredentialsDialog() async {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Verify Credentials'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: oldUserIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Current User ID',
-                    border: OutlineInputBorder(),
-                  ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: oldUserIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Current User ID',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: oldPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Password',
-                    border: OutlineInputBorder(),
-                  ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: oldPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -318,13 +290,97 @@ void showSuccess(String message) {
     );
   }
 
+bool _isOldPasswordVisible = false;
+  bool _isNewPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+
+  Future<void> _showChangePasswordDialog() async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Change Password'),
+              content: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: _oldPasswordController,
+                      obscureText: !_isOldPasswordVisible,
+                      decoration: InputDecoration(
+                        labelText: 'Current Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_isOldPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _isOldPasswordVisible = !_isOldPasswordVisible),
+                        ),
+                      ),
+                      validator: (value) => value?.isEmpty ?? true ? 'Enter current password' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _newPasswordController,
+                      obscureText: !_isNewPasswordVisible,
+                      decoration: InputDecoration(
+                        labelText: 'New Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_isNewPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
+                        ),
+                      ),
+                      validator: (value) => (value?.length ?? 0) < 6 ? 'Password must be at least 6 characters' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: !_isConfirmPasswordVisible,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm New Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                        ),
+                      ),
+                      validator: (value) => value != _newPasswordController.text ? 'Passwords do not match' : null,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _clearPasswordFields();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      Navigator.pop(context);
+                      _changePassword();
+                    }
+                  },
+                  child: const Text('Change Password'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -359,82 +415,133 @@ void showSuccess(String message) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundImage:
-                          _selectedImage != null ? FileImage(_selectedImage!) : null,
-                      child: _selectedImage == null
-                          ? const Icon(Icons.person, size: 60, color: Colors.white)
-                          : null,
-                    ),
-                    if (isEditing)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.camera_alt, color: Colors.blue),
-                          onPressed: isUploading ? null : pickImageAndUpload,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (isUploading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+              _buildProfileImage(),
               const SizedBox(height: 24),
-              _buildSectionTitle('Personal Information'),
-              _buildProfileField(
-                label: 'Name',
-                controller: nameController,
-                enabled: isEditing,
-                icon: Icons.person_outline,
-              ),
-              _buildProfileField(
-                label: 'Address',
-                controller: addressController,
-                enabled: isEditing,
-                icon: Icons.location_on_outlined,
-              ),
-              _buildProfileField(
-                label: 'Contact',
-                controller: contactController,
-                enabled: isEditing,
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              _buildProfileField(
-                label: 'Emergency Contact',
-                controller: emergencyContactController,
-                enabled: isEditing,
-                icon: Icons.emergency_outlined,
-                keyboardType: TextInputType.phone,
-              ),
+              _buildPersonalInformation(),
               const SizedBox(height: 16),
-              _buildSectionTitle('Account Information'),
-              if (isEditing && !isCredentialsValidated)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: ElevatedButton(
-                    onPressed: _showCredentialsDialog,
-                    child: const Text('Verify to Edit Account Information'),
-                  ),
-                ),
-              _buildProfileField(
-                label: 'User ID',
-                controller: userIdController,
-                enabled: isEditing && isCredentialsValidated,
-                icon: Icons.person_pin_outlined,
-              ),
-              _buildPasswordField(),
+              _buildAccountInformation(),
+              const SizedBox(height: 16),
+              _buildChangePasswordButton(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage() {
+    return Center(
+      child: Stack(
+        children: [
+          CircleAvatar(
+            radius: 60,
+            backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+            child: _selectedImage == null
+                ? const Icon(Icons.person, size: 60, color: Colors.white)
+                : null,
+          ),
+          if (isEditing)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: IconButton(
+                icon: const Icon(Icons.camera_alt, color: Colors.blue),
+                onPressed: isUploading ? null : () async {
+                  final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+                  if (pickedFile != null) {
+                    setState(() {
+                      _selectedImage = File(pickedFile.path);
+                      isUploading = true;
+                    });
+
+                    try {
+                      final base64Image = await compressAndConvertToBase64(_selectedImage!);
+                      bool uploadSuccess = await _userService.uploadProfileImage(
+                        widget.userId, base64Image, widget.token);
+
+                      if (uploadSuccess) {
+                        showSuccess('Profile image uploaded successfully');
+                      } else {
+                        showError('Failed to upload profile image');
+                      }
+                    } catch (e) {
+                      showError('Error uploading image');
+                    } finally {
+                      setState(() => isUploading = false);
+                    }
+                  }
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalInformation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Personal Information'),
+        _buildTextField(
+          label: 'Name',
+          controller: nameController,
+          enabled: isEditing,
+          icon: Icons.person_outline,
+        ),
+        _buildTextField(
+          label: 'Address',
+          controller: addressController,
+          enabled: isEditing,
+          icon: Icons.location_on_outlined,
+        ),
+        _buildTextField(
+          label: 'Contact',
+          controller: contactController,
+          enabled: isEditing,
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+        ),
+        _buildTextField(
+          label: 'Emergency Contact',
+          controller: emergencyContactController,
+          enabled: isEditing,
+          icon: Icons.emergency_outlined,
+          keyboardType: TextInputType.phone,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountInformation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Account Information'),
+        if (isEditing && !isCredentialsValidated)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: ElevatedButton(
+              onPressed: _showCredentialsDialog,
+              child: const Text('Verify to Edit Account Information'),
+            ),
+          ),
+        _buildTextField(
+          label: 'User ID',
+          controller: userIdController,
+          enabled: isEditing && isCredentialsValidated,
+          icon: Icons.person_pin_outlined,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChangePasswordButton() {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: () => _showChangePasswordDialog(),
+        icon: const Icon(Icons.lock_outline),
+        label: const Text('Change Password'),
       ),
     );
   }
@@ -453,7 +560,7 @@ void showSuccess(String message) {
     );
   }
 
-  Widget _buildProfileField({
+  Widget _buildTextField({
     required String label,
     required TextEditingController controller,
     required bool enabled,
@@ -479,34 +586,13 @@ void showSuccess(String message) {
     );
   }
 
-  Widget _buildPasswordField() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
-        controller: passwordController,
-        enabled: isEditing && isCredentialsValidated,
-        obscureText: !isPasswordVisible,
-        decoration: InputDecoration(
-          labelText: 'Password',
-          prefixIcon: const Icon(Icons.lock_outline),
-          suffixIcon: IconButton(
-            icon: Icon(
-              isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-              color: Colors.blue,
-            ),
-            onPressed: () {
-              setState(() {
-                isPasswordVisible = !isPasswordVisible;
-              });
-            },
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          filled: true,
-          fillColor: isEditing && isCredentialsValidated ? Colors.white : Colors.grey[100],
-        ),
-      ),
-    );
+  Future<void> validateCredentials() async {
+    if (oldUserIdController.text == userProfile?.userId &&
+        oldPasswordController.text == userProfile?.password) {
+      setState(() => isCredentialsValidated = true);
+      showSuccess('Credentials validated. You can now update your account information.');
+    } else {
+      showError('Invalid credentials. Please try again.');
+    }
   }
 }
