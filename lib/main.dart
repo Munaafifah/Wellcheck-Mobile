@@ -8,8 +8,9 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Stripe.publishableKey = stripePublishableKey;
+  await Stripe.instance.applySettings();
+
   try {
-    await Stripe.instance.applySettings();
     print('Stripe initialized successfully');
   } catch (e) {
     print('Stripe initialization failed: $e');
