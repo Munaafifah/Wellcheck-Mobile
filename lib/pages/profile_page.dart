@@ -151,43 +151,90 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> updateProfiles() async {
-    try {
-      final updatedPatient = PatientProfile(
-        name: nameController.text,
-        address: addressController.text,
-        contact: contactController.text,
-        emergencyContact: emergencyContactController.text,
-      );
+  try {
+    // Prepare the updated patient (personal) profile
+    final updatedPatient = PatientProfile(
+      name: nameController.text,
+      address: addressController.text,
+      contact: contactController.text,
+      emergencyContact: emergencyContactController.text,
+    );
 
-      final updatedUser = UserProfile(
-        userId: isCredentialsValidated ? userIdController.text : userProfile?.userId,
-        password: isCredentialsValidated ? passwordController.text : userProfile?.password,
-      );
+    // Prepare the updated user (account) profile
+    final updatedUser = UserProfile(
+      userId: isCredentialsValidated ? userIdController.text : userProfile?.userId,
+      password: isCredentialsValidated ? passwordController.text : userProfile?.password,
+    );
 
-      final patientSuccess = await _patientService.updatePatient(
-        widget.userId,
-        updatedPatient,
-        widget.token,
-      );
+    // Call update API for patient (personal) profile
+    final patientSuccess = await _patientService.updatePatient(
+      widget.userId,
+      updatedPatient,
+      widget.token,
+    );
 
-      final userSuccess = await _userService.updateUser(
-        widget.userId,
-        updatedUser,
-        widget.token,
-      );
+    // Call update API for user (account) profile
+    final userSuccess = await _userService.updateUser(
+      widget.userId,
+      updatedUser,
+      widget.token,
+    );
 
-      if (patientSuccess && userSuccess) {
-        showSuccess('Profile updated successfully');
-        setState(() {
-          isCredentialsValidated = false;
-          oldUserIdController.clear();
-          oldPasswordController.clear();
-        });
-      }
-    } catch (e) {
-      print("Error updating profiles: $e");
-      showError('Error updating profile');
+    // Log the responses for debugging
+    print("Patient Update Success: $patientSuccess");
+    print("User Update Success: $userSuccess");
+
+    // Show messages based on whether personal information was updated
+    if (patientSuccess == true) {
+      showSuccess('Personal information updated successfully');
+    } else if (updatedPatient.name != patientProfile?.name ||
+        updatedPatient.address != patientProfile?.address ||
+        updatedPatient.contact != patientProfile?.contact ||
+        updatedPatient.emergencyContact != patientProfile?.emergencyContact) {
+      // If personal info was changed but update failed
+      showError('Failed to update personal information');
     }
+
+    // Show messages based on whether account information was updated
+    if (userSuccess == true) {
+      showSuccess('Account information updated successfully');
+    } else if (updatedUser.userId != userProfile?.userId ||
+        updatedUser.password != userProfile?.password) {
+      // If account info was changed but update failed
+      showError('Failed to update account information');
+    }
+
+    // If both updates succeed, reset the validation state and clear fields
+    if (patientSuccess == true && userSuccess == true) {
+      setState(() {
+        isCredentialsValidated = false;
+        oldUserIdController.clear();
+        oldPasswordController.clear();
+      });
+    }
+
+  } catch (e) {
+    print("Error updating profiles: $e");
+    showError('Error updating profile');
+  }
+}
+
+void showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   Future<void> pickImageAndUpload() async {
@@ -222,23 +269,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-
-  void showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
+  
 
   Future<void> _showCredentialsDialog() async {
     return showDialog(
