@@ -35,7 +35,6 @@ class _ProfilePageState extends State<ProfilePage> {
   File? _selectedImage;
   final ImagePicker _imagePicker = ImagePicker();
 
-  // Text controllers for profile
   late TextEditingController nameController;
   late TextEditingController addressController;
   late TextEditingController contactController;
@@ -44,7 +43,6 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController oldUserIdController;
   late TextEditingController oldPasswordController;
 
-  // Text controllers for password change
   final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -52,6 +50,10 @@ class _ProfilePageState extends State<ProfilePage> {
   final ProfileService _patientService = ProfileService();
   final Profile2Service _userService = Profile2Service();
   final _formKey = GlobalKey<FormState>();
+
+  bool _isOldPasswordVisible = false;
+  bool _isNewPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   void initState() {
@@ -82,7 +84,6 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  // Image handling methods
   Future<void> fetchAndDisplayProfileImage() async {
     try {
       final imageBase64 = await _userService.fetchProfileImage(widget.userId, widget.token);
@@ -121,7 +122,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Profile management methods
   Future<void> fetchProfiles() async {
     try {
       final patient = await _patientService.fetchPatient(widget.userId, widget.token);
@@ -180,6 +180,7 @@ class _ProfilePageState extends State<ProfilePage> {
           isCredentialsValidated = false;
           oldUserIdController.clear();
           oldPasswordController.clear();
+          isEditing = false;
         });
       } else {
         showError('Failed to update some profile information');
@@ -189,11 +190,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Password change methods
   Future<void> _changePassword() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // First verify current password
         bool isVerified = await _userService.verifyPassword(
           widget.userId,
           _oldPasswordController.text,
@@ -205,7 +204,6 @@ class _ProfilePageState extends State<ProfilePage> {
           return;
         }
 
-        // If verified, proceed with password update
         bool isSuccess = await _userService.updatePassword(
           widget.userId,
           _newPasswordController.text,
@@ -231,43 +229,64 @@ class _ProfilePageState extends State<ProfilePage> {
     _confirmPasswordController.clear();
   }
 
-  // UI Feedback methods
   void showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFF379B7E),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
     );
   }
 
   void showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
     );
   }
 
-  // Dialogs
   Future<void> _showCredentialsDialog() async {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Verify Credentials'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: oldUserIdController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Current User ID',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  filled: true,
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: oldPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Current Password',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  filled: true,
                 ),
               ),
             ],
@@ -282,6 +301,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 validateCredentials();
                 Navigator.pop(context);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF379B7E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               child: const Text('Verify'),
             ),
           ],
@@ -290,10 +315,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-bool _isOldPasswordVisible = false;
-  bool _isNewPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
-
   Future<void> _showChangePasswordDialog() async {
     return showDialog(
       context: context,
@@ -301,6 +322,9 @@ bool _isOldPasswordVisible = false;
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: const Text('Change Password'),
               content: Form(
                 key: _formKey,
@@ -312,7 +336,10 @@ bool _isOldPasswordVisible = false;
                       obscureText: !_isOldPasswordVisible,
                       decoration: InputDecoration(
                         labelText: 'Current Password',
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        filled: true,
                         suffixIcon: IconButton(
                           icon: Icon(_isOldPasswordVisible ? Icons.visibility_off : Icons.visibility),
                           onPressed: () => setState(() => _isOldPasswordVisible = !_isOldPasswordVisible),
@@ -326,7 +353,10 @@ bool _isOldPasswordVisible = false;
                       obscureText: !_isNewPasswordVisible,
                       decoration: InputDecoration(
                         labelText: 'New Password',
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        filled: true,
                         suffixIcon: IconButton(
                           icon: Icon(_isNewPasswordVisible ? Icons.visibility_off : Icons.visibility),
                           onPressed: () => setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
@@ -340,7 +370,10 @@ bool _isOldPasswordVisible = false;
                       obscureText: !_isConfirmPasswordVisible,
                       decoration: InputDecoration(
                         labelText: 'Confirm New Password',
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        filled: true,
                         suffixIcon: IconButton(
                           icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility),
                           onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
@@ -366,6 +399,12 @@ bool _isOldPasswordVisible = false;
                       _changePassword();
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF379B7E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   child: const Text('Change Password'),
                 ),
               ],
@@ -380,51 +419,119 @@ bool _isOldPasswordVisible = false;
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: Icon(isEditing ? Icons.save : Icons.edit),
-            onPressed: () {
-              if (isEditing) {
-                updateProfiles();
-              }
-              setState(() {
-                isEditing = !isEditing;
-                if (!isEditing) {
-                  isCredentialsValidated = false;
-                }
-              });
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await fetchProfiles();
-          await fetchAndDisplayProfileImage();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildProfileImage(),
-              const SizedBox(height: 24),
-              _buildPersonalInformation(),
-              const SizedBox(height: 16),
-              _buildAccountInformation(),
-              const SizedBox(height: 16),
-              _buildChangePasswordButton(),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF4CAF93),
+              Color(0xFF379B7E),
+              Color(0xFF1E7F68),
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
+        child: Column(
+          children: [
+            const SizedBox(height: 80),
+            _buildHeader(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await fetchProfiles();
+                  await fetchAndDisplayProfileImage();
+                },
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(60),
+                      topRight: Radius.circular(60),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        _buildProfileImage(),
+                        const SizedBox(height: 24),
+                        _buildPersonalInformation(),
+                        const SizedBox(height: 16),
+                        _buildAccountInformation(),
+                        const SizedBox(height: 16),
+                        _buildChangePasswordButton(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              const Expanded(
+                child: Text(
+                  "Profile",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  isEditing ? Icons.save : Icons.edit,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  if (isEditing) {
+                    updateProfiles();
+                  }
+                  setState(() {
+                    isEditing = !isEditing;
+                    if (!isEditing) {
+                      isCredentialsValidated = false;
+                    }
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Manage your personal information",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -433,49 +540,73 @@ bool _isOldPasswordVisible = false;
     return Center(
       child: Stack(
         children: [
-          CircleAvatar(
-            radius: 60,
-            backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
-            child: _selectedImage == null
-                ? const Icon(Icons.person, size: 60, color: Colors.white)
-                : null,
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: CircleAvatar(
+              radius: 60,
+              backgroundColor: const Color(0xFF379B7E),
+              backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+              child: _selectedImage == null
+                  ? const Icon(Icons.person, size: 60, color: Colors.white)
+                  : null,
+            ),
           ),
           if (isEditing)
             Positioned(
               bottom: 0,
               right: 0,
-              child: IconButton(
-                icon: const Icon(Icons.camera_alt, color: Colors.blue),
-                onPressed: isUploading ? null : () async {
-                  final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
-                  if (pickedFile != null) {
-                    setState(() {
-                      _selectedImage = File(pickedFile.path);
-                      isUploading = true;
-                    });
-
-                    try {
-                      final base64Image = await compressAndConvertToBase64(_selectedImage!);
-                      bool uploadSuccess = await _userService.uploadProfileImage(
-                        widget.userId, base64Image, widget.token);
-
-                      if (uploadSuccess) {
-                        showSuccess('Profile image uploaded successfully');
-                      } else {
-                        showError('Failed to upload profile image');
-                      }
-                    } catch (e) {
-                      showError('Error uploading image');
-                    } finally {
-                      setState(() => isUploading = false);
-                    }
-                  }
-                },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF379B7E),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                  onPressed: isUploading ? null : _handleImagePick,
+                ),
               ),
             ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleImagePick() async {
+    final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+        isUploading = true;
+      });
+
+      try {
+        final base64Image = await compressAndConvertToBase64(_selectedImage!);
+        bool uploadSuccess = await _userService.uploadProfileImage(
+          widget.userId, base64Image, widget.token);
+
+        if (uploadSuccess) {
+          showSuccess('Profile image uploaded successfully');
+        } else {
+          showError('Failed to upload profile image');
+        }
+      } catch (e) {
+        showError('Error uploading image');
+      } finally {
+        setState(() => isUploading = false);
+      }
+    }
   }
 
   Widget _buildPersonalInformation() {
@@ -518,14 +649,6 @@ bool _isOldPasswordVisible = false;
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Account Information'),
-        if (isEditing && !isCredentialsValidated)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: ElevatedButton(
-              onPressed: _showCredentialsDialog,
-              child: const Text('Verify to Edit Account Information'),
-            ),
-          ),
         _buildTextField(
           label: 'User ID',
           controller: userIdController,
@@ -533,16 +656,6 @@ bool _isOldPasswordVisible = false;
           icon: Icons.person_pin_outlined,
         ),
       ],
-    );
-  }
-
-  Widget _buildChangePasswordButton() {
-    return Center(
-      child: ElevatedButton.icon(
-        onPressed: () => _showChangePasswordDialog(),
-        icon: const Icon(Icons.lock_outline),
-        label: const Text('Change Password'),
-      ),
     );
   }
 
@@ -554,7 +667,7 @@ bool _isOldPasswordVisible = false;
         style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.blue,
+          color: Color(0xFF379B7E),
         ),
       ),
     );
@@ -567,20 +680,42 @@ bool _isOldPasswordVisible = false;
     required IconData icon,
     TextInputType? keyboardType,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
-        controller: controller,
-        enabled: enabled,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: TextField(
+          controller: controller,
+          enabled: enabled,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: TextStyle(color: const Color(0xFF379B7E)),
+            prefixIcon: Icon(icon, color: const Color(0xFF379B7E)),
+            border: InputBorder.none,
+            filled: true,
+            fillColor: enabled ? Colors.white : Colors.grey[100],
           ),
-          filled: true,
-          fillColor: enabled ? Colors.white : Colors.grey[100],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChangePasswordButton() {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: () => _showChangePasswordDialog(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF379B7E),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        ),
+        icon: const Icon(Icons.lock_outline, color: Colors.white),
+        label: const Text(
+          'Change Password',
+          style: TextStyle(color: Colors.white, fontSize: 16),
         ),
       ),
     );
