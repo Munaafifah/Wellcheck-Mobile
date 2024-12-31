@@ -115,7 +115,7 @@ app.get("/prescriptions/:userId", async (req, res) => {
       }
 
       // Access the nested patient data
-      const patient = patientDoc[userId]; 
+      const patient = patientDoc[userId];
       if (!patient || !patient.Prescription || Object.keys(patient.Prescription).length === 0) {
         return res.status(404).json({ error: "No prescriptions found for this patient." });
       }
@@ -129,321 +129,321 @@ app.get("/prescriptions/:userId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-  
-  const { v4: uuidv4 } = require("uuid"); // Add this for unique ID generation
 
-  app.post('/predictions2', async (req, res) => {
-    try {
-        const token = req.headers.authorization?.split(" ")[1];
-        if (!token) {
-            return res.status(401).json({ error: "Unauthorized" });
-        }
-  
-        jwt.verify(token, secretKey, async (err, decoded) => {
-            if (err) {
-                return res.status(401).json({ error: "Invalid token" });
-            }
-  
-            const patients = client.db("Wellcheck2").collection("Patient");
-            const userId = decoded.userId;
-            const { diagnosisList, probabilityList, symptomsList, timestamp } = req.body;
-  
-            if (!diagnosisList || !probabilityList || !symptomsList) {
-                return res.status(400).json({ error: "Missing required fields" });
-            }
-  
-            const predictionID = uuidv4();
-            const newPrediction = {
-                diagnosisList,
-                probabilityList,
-                symptomsList,
-                predictionID,
-                timestamp: timestamp || new Date().toISOString(),
-            };
-  
-            // Find the patient by user ID
-            const existingPatient = await patients.findOne({ _id: userId });
-  
-            if (existingPatient) {
-                // Dynamically detect the first key (like "000", "001")
-                const patientKey = Object.keys(existingPatient).find(key => key !== '_id');
-  
-                if (patientKey) {
-                    const patientData = existingPatient[patientKey];
-  
-                    if (patientData.Prediction) {
-                        // If Prediction exists, append new entry to the existing object
-                        await patients.updateOne(
-                            { _id: userId },
-                            { $set: { [`${patientKey}.Prediction.${predictionID}`]: newPrediction } }
-                        );
-                    } else {
-                        // If Prediction doesn't exist, create a new Prediction object
-                        await patients.updateOne(
-                            { _id: userId },
-                            { $set: { [`${patientKey}.Prediction`]: { [predictionID]: newPrediction } } }
-                        );
-                    }
-  
-                    // Return updated patient data
-                    const updatedPatient = await patients.findOne({ _id: userId });
-                    res.status(200).json({
-                        message: "Prediction saved successfully",
-                        predictionID: predictionID,
-                        patient: updatedPatient,
-                    });
-                } else {
-                    res.status(404).json({ error: "No valid nested document found for patient" });
-                }
-            } else {
-                res.status(404).json({ error: "Patient not found" });
-            }
-        });
-    } catch (error) {
-        console.error("Error saving prediction:", error);
-        res.status(500).json({ error: "Internal server error" });
+const { v4: uuidv4 } = require("uuid"); // Add this for unique ID generation
+
+app.post('/predictions2', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
-  
-  app.get("/healthstatus/:userId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
       }
-  
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const userId = req.params.userId;
-        await client.connect();
-        const patients = client.db("Wellcheck2").collection("Patient");
-  
-        const patientDoc = await patients.findOne({ _id: userId });
-        if (!patientDoc || !patientDoc[userId]) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
-  
-        const patient = patientDoc[userId];
-        // Changed from Healthstatus to HealthStatus
-        if (!patient.HealthStatus || Object.keys(patient.HealthStatus).length === 0) {
-          return res
-            .status(404)
-            .json({ error: "No healthstatus found for this patient" });
-        }
-  
-        // Changed from Healthstatus to HealthStatus
-        const healthstatusList = Object.values(patient.HealthStatus);
-        res.json(healthstatusList);
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  // server.js
-  app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      const patients = client.db("Wellcheck2").collection("Patient");
+      const userId = decoded.userId;
+      const { diagnosisList, probabilityList, symptomsList, timestamp } = req.body;
+
+      if (!diagnosisList || !probabilityList || !symptomsList) {
+        return res.status(400).json({ error: "Missing required fields" });
       }
-  
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const userId = req.params.userId;
-        const healthStatusId = req.params.healthStatusId;
-  
-        await client.connect();
-        const patients = client.db("Wellcheck2").collection("Patient");
-  
-        const patientDoc = await patients.findOne({ _id: userId });
-        if (!patientDoc || !patientDoc[userId]) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
-  
-        const patient = patientDoc[userId];
-        if (!patient.HealthStatus || !patient.HealthStatus[healthStatusId]) {
-          return res
-            .status(404)
-            .json({ error: "Health status entry not found" });
-        }
-  
-        // Remove the health status entry from the HealthStatus object
-        delete patient.HealthStatus[healthStatusId];
-  
-        // Update the patient document with the modified HealthStatus
-        await patients.updateOne(
-          { _id: userId },
-          { $set: { [userId]: patient } }
-        );
-  
-        res.json({ message: "Health status entry deleted" });
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
 
-  app.post("/add-symptom", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+      const predictionID = uuidv4();
+      const newPrediction = {
+        diagnosisList,
+        probabilityList,
+        symptomsList,
+        predictionID,
+        timestamp: timestamp || new Date().toISOString(),
+      };
+
+      // Find the patient by user ID
+      const existingPatient = await patients.findOne({ _id: userId });
+
+      if (existingPatient) {
+        // Dynamically detect the first key (like "000", "001")
+        const patientKey = Object.keys(existingPatient).find(key => key !== '_id');
+
+        if (patientKey) {
+          const patientData = existingPatient[patientKey];
+
+          if (patientData.Prediction) {
+            // If Prediction exists, append new entry to the existing object
+            await patients.updateOne(
+              { _id: userId },
+              { $set: { [`${patientKey}.Prediction.${predictionID}`]: newPrediction } }
+            );
+          } else {
+            // If Prediction doesn't exist, create a new Prediction object
+            await patients.updateOne(
+              { _id: userId },
+              { $set: { [`${patientKey}.Prediction`]: { [predictionID]: newPrediction } } }
+            );
+          }
+
+          // Return updated patient data
+          const updatedPatient = await patients.findOne({ _id: userId });
+          res.status(200).json({
+            message: "Prediction saved successfully",
+            predictionID: predictionID,
+            patient: updatedPatient,
+          });
+        } else {
+          res.status(404).json({ error: "No valid nested document found for patient" });
+        }
+      } else {
+        res.status(404).json({ error: "Patient not found" });
       }
-  
-      // Verify the token
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const { symptomDescription } = req.body;
-        const userId = decoded.userId;
-  
-        // Fetch patient details
-        await client.connect();
-        const patients = client.db("Wellcheck2").collection("Patient");
-        const patient = await patients.findOne({ _id: userId });
-  
-        if (!patient) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
-  
-        // Access the assigned_doctor field
-        const doctorId = patient[userId]?.assigned_doctor;
-  
-        if (!doctorId) {
-          return res.status(404).json({ error: "Assigned doctor not found" });
-        }
-  
-        // Generate unique symptomId
-        const symptomId = uuidv4();
-  
-        // Insert symptom into symptoms collection
-        const symptoms = client.db("Wellcheck2").collection("Symptom");
-        const newSymptom = {
-          symptomId, // Add symptomId
-          userId,
-          doctorId,
-          symptomDescription,
-          timestamp: new Date(),
-        };
-        await symptoms.insertOne(newSymptom);
-  
-        res.json({ message: "Symptom added successfully", symptom: newSymptom });
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
+    });
+  } catch (error) {
+    console.error("Error saving prediction:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/healthstatus/:userId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
 
-
-
-  app.get("/symptoms/:userId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
       }
-  
-      // Verify the token
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const userId = req.params.userId;
-  
-        // Fetch symptoms for the user
-        await client.connect();
-        const symptoms = client.db("Wellcheck2").collection("Symptom");
-        const userSymptoms = await symptoms.find({ userId }).toArray();
-  
-        res.json(userSymptoms);
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  
-  app.put("/update-symptom", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      const userId = req.params.userId;
+      await client.connect();
+      const patients = client.db("Wellcheck2").collection("Patient");
+
+      const patientDoc = await patients.findOne({ _id: userId });
+      if (!patientDoc || !patientDoc[userId]) {
+        return res.status(404).json({ error: "Patient not found" });
       }
-  
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const { symptomId, symptomDescription } = req.body;
-  
-        // Update the symptom
-        await client.connect();
-        const symptoms = client.db("Wellcheck").collection("symptoms");
-        const result = await symptoms.updateOne(
-          { symptomId },
-          { $set: { symptomDescription } }
-        );
-  
-        if (result.modifiedCount === 0) {
-          return res.status(404).json({ error: "Symptom not found" });
-        }
-  
-        res.json({ message: "Symptom updated successfully" });
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  app.delete("/delete-symptom/:symptomId", async (req, res) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      const patient = patientDoc[userId];
+      // Changed from Healthstatus to HealthStatus
+      if (!patient.HealthStatus || Object.keys(patient.HealthStatus).length === 0) {
+        return res
+          .status(404)
+          .json({ error: "No healthstatus found for this patient" });
       }
-  
-      jwt.verify(token, secretKey, async (err, decoded) => {
-        if (err) {
-          return res.status(401).json({ error: "Invalid token" });
-        }
-  
-        const symptomId = req.params.symptomId;
-  
 
-        // Delete the symptom
-        await client.connect();
-        const symptoms = client.db("Wellcheck").collection("symptoms");
-        const result = await symptoms.deleteOne({ symptomId });
-  
-        if (result.deletedCount === 0) {
-          return res.status(404).json({ error: "Symptom not found" });
-        }
-  
-        res.json({ message: "Symptom deleted successfully" });
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
+      // Changed from Healthstatus to HealthStatus
+      const healthstatusList = Object.values(patient.HealthStatus);
+      res.json(healthstatusList);
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// server.js
+app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  });
 
-  const tokenBlacklist = new Set(); // In-memory blacklist (use Redis for production)
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
 
-  
+      const userId = req.params.userId;
+      const healthStatusId = req.params.healthStatusId;
 
-  app.get("/sickness", async (req, res) => {
+      await client.connect();
+      const patients = client.db("Wellcheck2").collection("Patient");
+
+      const patientDoc = await patients.findOne({ _id: userId });
+      if (!patientDoc || !patientDoc[userId]) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      const patient = patientDoc[userId];
+      if (!patient.HealthStatus || !patient.HealthStatus[healthStatusId]) {
+        return res
+          .status(404)
+          .json({ error: "Health status entry not found" });
+      }
+
+      // Remove the health status entry from the HealthStatus object
+      delete patient.HealthStatus[healthStatusId];
+
+      // Update the patient document with the modified HealthStatus
+      await patients.updateOne(
+        { _id: userId },
+        { $set: { [userId]: patient } }
+      );
+
+      res.json({ message: "Health status entry deleted" });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/add-symptom", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify the token
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const { symptomDescription } = req.body;
+      const userId = decoded.userId;
+
+      // Fetch patient details
+      await client.connect();
+      const patients = client.db("Wellcheck2").collection("Patient");
+      const patient = await patients.findOne({ _id: userId });
+
+      if (!patient) {
+        return res.status(404).json({ error: "Patient not found" });
+      }
+
+      // Access the assigned_doctor field
+      const doctorId = patient[userId]?.assigned_doctor;
+
+      if (!doctorId) {
+        return res.status(404).json({ error: "Assigned doctor not found" });
+      }
+
+      // Generate unique symptomId
+      const symptomId = uuidv4();
+
+      // Insert symptom into symptoms collection
+      const symptoms = client.db("Wellcheck2").collection("Symptom");
+      const newSymptom = {
+        symptomId, // Add symptomId
+        userId,
+        doctorId,
+        symptomDescription,
+        timestamp: new Date(),
+      };
+      await symptoms.insertOne(newSymptom);
+
+      res.json({ message: "Symptom added successfully", symptom: newSymptom });
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
+app.get("/symptoms/:userId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify the token
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const userId = req.params.userId;
+
+      // Fetch symptoms for the user
+      await client.connect();
+      const symptoms = client.db("Wellcheck2").collection("Symptom");
+      const userSymptoms = await symptoms.find({ userId }).toArray();
+
+      res.json(userSymptoms);
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+app.put("/update-symptom", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const { symptomId, symptomDescription } = req.body;
+
+      // Update the symptom
+      await client.connect();
+      const symptoms = client.db("Wellcheck").collection("symptoms");
+      const result = await symptoms.updateOne(
+        { symptomId },
+        { $set: { symptomDescription } }
+      );
+
+      if (result.modifiedCount === 0) {
+        return res.status(404).json({ error: "Symptom not found" });
+      }
+
+      res.json({ message: "Symptom updated successfully" });
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.delete("/delete-symptom/:symptomId", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const symptomId = req.params.symptomId;
+
+
+      // Delete the symptom
+      await client.connect();
+      const symptoms = client.db("Wellcheck").collection("symptoms");
+      const result = await symptoms.deleteOne({ symptomId });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "Symptom not found" });
+      }
+
+      res.json({ message: "Symptom deleted successfully" });
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const tokenBlacklist = new Set(); // In-memory blacklist (use Redis for production)
+
+
+
+app.get("/sickness", async (req, res) => {
   try {
     await client.connect();
     const sicknessCollection = client.db("Wellcheck2").collection("sickness"); // Adjust collection name accordingly
@@ -496,7 +496,7 @@ app.get("/hospitals/:hospitalId", async (req, res) => {
       return res.status(404).json({ error: "Hospital not found" }); // Adjusted error response
     }
 
-    
+
     // Return the hospital's dynamic form fields
     res.json(hospital.form_fields);
   } catch (error) {
@@ -511,19 +511,19 @@ app.get("/hospitals/:hospitalId", async (req, res) => {
 app.get('/hospitals/:name/fields', async (req, res) => {
   try {
     const hospital = await Hospital.findOne({ name: req.params.name });
-    
+
     if (!hospital) {
       console.log(`Hospital not found for name: ${req.params.name}`);
       return res.status(404).json({ message: 'Hospital not found' });
     }
-    
+
     const responseFields = hospital.fields.map(field => ({
       label: field.label,
       type: field.type,
       options: field.options || [], // Ensure options default to an empty array if none exist
       required: field.required,
     }));
-    
+
     res.json({ fields: responseFields });
   } catch (error) {
     console.error('Error getting hospital fields:', error);
@@ -597,7 +597,7 @@ app.post("/appointments", async (req, res) => {
       appointmentCost, // New field for cost
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
-      
+
     } = req.body;
 
     const userId = decoded.userId; // Assuming userId is in the JWT payload
@@ -610,7 +610,7 @@ app.post("/appointments", async (req, res) => {
       !typeOfSickness ||
       !email ||
       !statusAppointment ||
-      appointmentCost == null 
+      appointmentCost == null
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -630,7 +630,7 @@ app.post("/appointments", async (req, res) => {
       const appointmentId = uuidv4();
       // Access the assigned_doctor field
       const doctorId = patient[userId]?.assigned_doctor;
-  
+
       if (!doctorId) {
         return res.status(404).json({ error: "Assigned doctor not found" });
       }
@@ -661,8 +661,8 @@ app.post("/appointments", async (req, res) => {
         registeredHospital,
         typeOfSickness,
         additionalNotes: additionalNotes || null, // If additionalNotes is empty or undefined, set to null
-        insuranceProvider:   insuranceProvider || null,
-        insurancePolicyNumber:  insurancePolicyNumber || null,
+        insuranceProvider: insuranceProvider || null,
+        insurancePolicyNumber: insurancePolicyNumber || null,
         email,
         appointmentCost,
         statusPayment,
@@ -681,10 +681,11 @@ app.post("/appointments", async (req, res) => {
         res.status(500).json({ error: "Failed to create appointment" });
       }
     } catch (mongoError) {
-      console.error("MongoDB Error:", mongoError);
-      res.status(500).json({ error: "Database error occurred" });
+      console.error("MongoDB Error:", mongoError.message);
+      res.status(500).json({ error: "Database error occurred", details: mongoError.message });
     } finally {
-      await client.close(); // Ensure the client connection is closed
+      await client.close();
+
       console.log("Disconnected from MongoDB");
     }
   } catch (error) {
@@ -693,41 +694,52 @@ app.post("/appointments", async (req, res) => {
   }
 });
 
-
-// Fetch user details endpoint
-app.get("/user/:userId", async (req, res) => {
+app.put("/update-appointment", async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Verify token
-    jwt.verify(token, "your_secret_key", async (err, decoded) => {
+    jwt.verify(token, secretKey, async (err, decoded) => {
       if (err) {
         return res.status(401).json({ error: "Invalid token" });
       }
 
-      const userId = req.params.userId;
-      await client.connect();
-      const users = client.db("Wellcheck2").collection("User");
+      const { appointmentId, appointmentDate, appointmentTime, duration, typeOfSickness } = req.body;
 
-      // Fetch the user document and access the nested data
-      const userDoc = await users.findOne({ _id: userId });
-
-      if (!userDoc || !userDoc[userId]) {
-        return res.status(404).json({ error: "User not found" });
+      // Validate that required fields are present
+      if (!appointmentId || !appointmentDate || !appointmentTime || !duration || !typeOfSickness) {
+        return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const user = userDoc[userId];  // Access the nested user data
-      res.json({
-        password: user.password,
-        userId: user.userId
-      });
+      // Create the full appointment date-time in ISO format if needed
+      const fullAppointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00.000Z`);
+
+      // Update the appointment in the database
+      await client.connect();
+      const appointments = client.db("Wellcheck").collection("appointments");
+
+      const result = await appointments.updateOne(
+        { appointmentId },
+        {
+          $set: {
+            appointmentDate: fullAppointmentDateTime, // Set the full date-time
+            appointmentTime: appointmentTime, // Assuming this is a string
+            duration, // Update duration
+            typeOfSickness, // Update type of sickness
+          },
+        }
+      );
+
+      if (result.modifiedCount === 0) {
+        return res.status(404).json({ error: "Appointment not found" });
+      }
+
+      res.json({ message: "Appointment updated successfully" });
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 
@@ -747,7 +759,7 @@ app.put("/patient/:userId", async (req, res) => {
 
       const userId = req.params.userId;
       const updates = req.body;
-      
+
       await client.connect();
       const patients = client.db("Wellcheck2").collection("Patient");
 
@@ -760,7 +772,7 @@ app.put("/patient/:userId", async (req, res) => {
 
       // Prepare update object by adding only the fields present in the update request
       const updateData = {};
-      
+
       // Update top-level fields if provided in the request
       if (updates.address) updateData["A1.address"] = updates.address;
       if (updates.contact) updateData["A1.contact"] = updates.contact;
@@ -799,7 +811,7 @@ app.put("/patient/:userId", async (req, res) => {
 // Update user details endpoint
 app.put("/user/:userId", async (req, res) => {
   let connection = null;
-  
+
   try {
     // Token validation
     const token = req.headers.authorization?.split(" ")[1];
@@ -840,7 +852,7 @@ app.put("/user/:userId", async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: "Internal server error" });
-    
+
     // If there's a connection error, reset the client
     if (error.code === 'ECONNRESET') {
       client = null;
@@ -911,7 +923,7 @@ app.put("/user/uploadImage/:userId", async (req, res) => {
     const users = client.db("Wellcheck2").collection("User");
 
     const fieldPath = `${userId}.profilepic`;
-    
+
     const result = await users.updateOne(
       { _id: userId },
       { $set: { [fieldPath]: profilepic } }
@@ -1001,11 +1013,11 @@ process.on('SIGINT', async () => {
   process.exit();
 })
 
-  // Start the server
-  app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-  });
-  
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
+
 // Logout endpoint
 app.post("/logout", (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
@@ -1031,6 +1043,6 @@ app.use((req, res, next) => {
   next();
 });
 
-  
+
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

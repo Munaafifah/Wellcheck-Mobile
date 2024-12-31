@@ -462,14 +462,12 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
       if (token != null) {
         // Create an appointment instance using the Appointment model
         Appointment newAppointment = Appointment(
-          appointmentId:
-              '', // You may want to leave this blank for the API to generate.
-          userId:
-              '', // Set this to the current user's ID, likely from your auth token or storage
+          appointmentId:'', // You may want to leave this blank for the API to generate.
+          userId:'', // Set this to the current user's ID, likely from your auth token or storage
           doctorId: '', // If needed, you should provide this value
           hospitalId:
               hospitalId, // Ensure this value is passed from the UI to the model
-          registeredHospital: _registeredHospital!,
+          registeredHospital: widget.hospital.name,
           appointmentDate: _selectedDate!,
           appointmentTime: _selectedTime!,
           duration: _selectedDuration!,
@@ -493,6 +491,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           additionalNotes: newAppointment.additionalNotes,
           email: newAppointment.email,
           hospitalId: hospitalId,
+          registeredHospital: widget.hospital.name,
           appointmentCost: newAppointment.appointmentCost,
           statusPayment: newAppointment.statusPayment,
           statusAppointment: newAppointment.statusAppointment,

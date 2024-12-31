@@ -15,10 +15,16 @@ class AppointmentService {
     dynamic body,
   }) async {
     Uri uri = Uri.parse("$baseUrl$endpoint");
-    final response = method == 'POST'
-        ? await http.post(uri, headers: headers, body: jsonEncode(body))
-        : await http.get(uri, headers: headers);
-    return response;
+    if (method == 'POST') {
+      return await http.post(uri, headers: headers, body: jsonEncode(body));
+    } else if (method == 'PUT') {
+      return await http.put(uri, headers: headers, body: jsonEncode(body));
+    } else if (method == 'GET') {
+      return await http.get(uri, headers: headers);
+    } else if (method == 'DELETE') {
+      return await http.delete(uri, headers: headers);
+    }
+    throw Exception('Unsupported HTTP method: $method');
   }
 
   // Create a new appointment
@@ -32,13 +38,12 @@ class AppointmentService {
     required String email,
     required double appointmentCost,
     required String hospitalId,
+    required String registeredHospital,
     String statusPayment = "Not Paid", // Optional parameter
     String statusAppointment = "Not Approved", // Optional parameter
     String? insuranceProvider, // Optional parameter for insurance provider
     String? insurancePolicyNumber, // Optional parameter for insurance policy number
     String? preferredLanguage, // Optional parameter for preferred language
-    
-
   }) async {
     final String formattedTime =
         '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
@@ -61,11 +66,11 @@ class AppointmentService {
       "appointmentCost": appointmentCost,
       "statusPayment": statusPayment,
       "statusAppointment": statusAppointment,
-      "hospitalId":hospitalId,
+      "hospitalId": hospitalId,
+      "registeredHospital": registeredHospital,
       "insuranceProvider": insuranceProvider, // Include insurance provider
       "insurancePolicyNumber": insurancePolicyNumber, // Include insurance policy number
       "preferredLanguage": preferredLanguage, // Include preferred language
-      
     });
 
     // Handle response
@@ -75,12 +80,10 @@ class AppointmentService {
   }
 
   // Fetch appointments for a specific user
-  Future<List<Appointment>> fetchAppointments(
-      String token, String userId) async {
+  Future<List<Appointment>> fetchAppointments(String token, String userId) async {
     try {
       final response = await http.get(
-        Uri.parse(
-            "$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
+        Uri.parse("$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -97,32 +100,39 @@ class AppointmentService {
     }
   }
 
-  // Update appointment's additional notes and registered hospital
-  Future<void> updateAppointment(String token, String appointmentId,
-      String newNotes, String? newHospital) async {
-    final response = await http.put(
-      Uri.parse(
-          "$baseUrl/appointments/$appointmentId"), // Endpoint for updating appointments
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "additionalNotes": newNotes,
-        "registeredHospital": newHospital, // Update hospital information
-      }),
-    );
+  // Update appointment date, time, duration, and type of sickness
+  Future<void> updateAppointment(
+    String token,
+    String appointmentId,
+    String appointmentDate, // Expecting a string date in ISO format
+    String appointmentTime, // Expecting a string time in "HH:mm" format
+    String duration, // Expect duration as string
+    String typeOfSickness) async { // Expecting the type of sickness
+    
+  final response = await http.put(
+    Uri.parse("$baseUrl/appointments/$appointmentId"),
+    headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    },
+    body: jsonEncode({
+      "appointmentDate": appointmentDate, // Pass appointment date
+      "appointmentTime": appointmentTime,   // Pass appointment time
+      "duration": duration,                   // Pass duration
+      "typeOfSickness": typeOfSickness,       // Pass type of sickness
+    }),
+  );
 
-    if (response.statusCode != 200) {
-      throw Exception("Failed to update appointment: ${response.body}");
-    }
+  // Check for successful response
+  if (response.statusCode != 200) {
+    throw Exception("Failed to update appointment: ${response.body}");
   }
+}
 
-  // Delete an appointment
+// Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
       Uri.parse("$baseUrl/appointments/$appointmentId"),
-      // Endpoint for
       headers: {
         "Authorization": "Bearer $token",
       },
@@ -130,6 +140,6 @@ class AppointmentService {
 
     if (response.statusCode != 200) {
       throw Exception("Failed to delete appointment: ${response.body}");
-    }
+        }
   }
 }
