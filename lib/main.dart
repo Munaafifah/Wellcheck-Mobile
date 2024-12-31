@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:session/pages/constsPayment.dart';
+import 'package:session/constsPayment.dart';
 import 'pages/login_page.dart';
 import 'pages/dashboard_page.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';

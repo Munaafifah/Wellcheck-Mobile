@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:session/pages/constsPayment.dart';
+import 'package:session/constsPayment.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import '../config.dart';
 
