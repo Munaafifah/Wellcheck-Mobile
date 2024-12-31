@@ -312,7 +312,7 @@ class _PredictionPageState extends State<PredictionPage> {
       ),
       dropdownDecoratorProps: DropDownDecoratorProps(
         dropdownSearchDecoration: InputDecoration(
-          labelText: "Symptoms",
+          labelText: "Symptom",
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),
