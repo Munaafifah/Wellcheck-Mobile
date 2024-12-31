@@ -13,10 +13,10 @@ class ProfilePage extends StatefulWidget {
   final String token;
 
   const ProfilePage({
-    Key? key,
+    super.key,
     required this.userId,
     required this.token,
-  }) : super(key: key);
+  });
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -45,7 +45,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   final ProfileService _patientService = ProfileService();
   final Profile2Service _userService = Profile2Service();
@@ -86,7 +87,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> fetchAndDisplayProfileImage() async {
     try {
-      final imageBase64 = await _userService.fetchProfileImage(widget.userId, widget.token);
+      final imageBase64 =
+          await _userService.fetchProfileImage(widget.userId, widget.token);
       if (imageBase64 != null) {
         setState(() {
           _selectedImage = decodeBase64ToFile(imageBase64);
@@ -113,7 +115,7 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final rawImage = img.decodeImage(await file.readAsBytes());
       if (rawImage == null) throw Exception("Failed to decode image.");
-      
+
       final resizedImage = img.copyResize(rawImage, width: 300);
       final compressedImage = img.encodeJpg(resizedImage, quality: 80);
       return base64Encode(compressedImage);
@@ -124,7 +126,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> fetchProfiles() async {
     try {
-      final patient = await _patientService.fetchPatient(widget.userId, widget.token);
+      final patient =
+          await _patientService.fetchPatient(widget.userId, widget.token);
       final user = await _userService.fetchUser(widget.userId, widget.token);
 
       setState(() {
@@ -158,7 +161,9 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       final updatedUser = UserProfile(
-        userId: isCredentialsValidated ? userIdController.text : userProfile?.userId,
+        userId: isCredentialsValidated
+            ? userIdController.text
+            : userProfile?.userId,
         password: userProfile?.password,
       );
 
@@ -341,11 +346,16 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         filled: true,
                         suffixIcon: IconButton(
-                          icon: Icon(_isOldPasswordVisible ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _isOldPasswordVisible = !_isOldPasswordVisible),
+                          icon: Icon(_isOldPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(() =>
+                              _isOldPasswordVisible = !_isOldPasswordVisible),
                         ),
                       ),
-                      validator: (value) => value?.isEmpty ?? true ? 'Enter current password' : null,
+                      validator: (value) => value?.isEmpty ?? true
+                          ? 'Enter current password'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -358,11 +368,16 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         filled: true,
                         suffixIcon: IconButton(
-                          icon: Icon(_isNewPasswordVisible ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
+                          icon: Icon(_isNewPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(() =>
+                              _isNewPasswordVisible = !_isNewPasswordVisible),
                         ),
                       ),
-                      validator: (value) => (value?.length ?? 0) < 6 ? 'Password must be at least 6 characters' : null,
+                      validator: (value) => (value?.length ?? 0) < 6
+                          ? 'Password must be at least 6 characters'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -375,11 +390,17 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                         filled: true,
                         suffixIcon: IconButton(
-                          icon: Icon(_isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                          icon: Icon(_isConfirmPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(() =>
+                              _isConfirmPasswordVisible =
+                                  !_isConfirmPasswordVisible),
                         ),
                       ),
-                      validator: (value) => value != _newPasswordController.text ? 'Passwords do not match' : null,
+                      validator: (value) => value != _newPasswordController.text
+                          ? 'Passwords do not match'
+                          : null,
                     ),
                   ],
                 ),
@@ -555,7 +576,8 @@ class _ProfilePageState extends State<ProfilePage> {
             child: CircleAvatar(
               radius: 60,
               backgroundColor: const Color(0xFF379B7E),
-              backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+              backgroundImage:
+                  _selectedImage != null ? FileImage(_selectedImage!) : null,
               child: _selectedImage == null
                   ? const Icon(Icons.person, size: 60, color: Colors.white)
                   : null,
@@ -573,7 +595,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   border: Border.all(color: Colors.white, width: 2),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                  icon: const Icon(Icons.camera_alt,
+                      color: Colors.white, size: 20),
                   onPressed: isUploading ? null : _handleImagePick,
                 ),
               ),
@@ -584,7 +607,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _handleImagePick() async {
-    final pickedFile = await _imagePicker.pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -594,7 +618,7 @@ class _ProfilePageState extends State<ProfilePage> {
       try {
         final base64Image = await compressAndConvertToBase64(_selectedImage!);
         bool uploadSuccess = await _userService.uploadProfileImage(
-          widget.userId, base64Image, widget.token);
+            widget.userId, base64Image, widget.token);
 
         if (uploadSuccess) {
           showSuccess('Profile image uploaded successfully');
@@ -692,7 +716,7 @@ class _ProfilePageState extends State<ProfilePage> {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             labelText: label,
-            labelStyle: TextStyle(color: const Color(0xFF379B7E)),
+            labelStyle: const TextStyle(color: Color(0xFF379B7E)),
             prefixIcon: Icon(icon, color: const Color(0xFF379B7E)),
             border: InputBorder.none,
             filled: true,
@@ -710,7 +734,8 @@ class _ProfilePageState extends State<ProfilePage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF379B7E),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
         icon: const Icon(Icons.lock_outline, color: Colors.white),
         label: const Text(
@@ -725,7 +750,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (oldUserIdController.text == userProfile?.userId &&
         oldPasswordController.text == userProfile?.password) {
       setState(() => isCredentialsValidated = true);
-      showSuccess('Credentials validated. You can now update your account information.');
+      showSuccess(
+          'Credentials validated. You can now update your account information.');
     } else {
       showError('Invalid credentials. Please try again.');
     }

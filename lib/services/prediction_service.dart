@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/prediction_model.dart';
-import '../config.dart';
 
 class PredictionService {
   final String djangoApiUrl =

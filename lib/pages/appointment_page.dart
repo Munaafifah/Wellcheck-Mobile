@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
@@ -31,12 +30,12 @@ class _AppointmentPageState extends State<AppointmentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Select Hospital')),
+      appBar: AppBar(title: const Text('Select Hospital')),
       body: FutureBuilder<List<Hospital>>(
         future: futureHospitals,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
@@ -69,14 +68,13 @@ class _AppointmentPageState extends State<AppointmentPage> {
   }
 }
 
-
 class AppointmentFormScreen extends StatefulWidget {
   final Hospital hospital;
   final Future<List<Sickness>>
       futureSicknesses; // Accept sicknesses as a future
 
-  AppointmentFormScreen(
-      {required this.hospital, required this.futureSicknesses});
+  const AppointmentFormScreen(
+      {super.key, required this.hospital, required this.futureSicknesses});
 
   @override
   _AppointmentFormScreenState createState() => _AppointmentFormScreenState();
@@ -87,9 +85,12 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
-  final TextEditingController _additionalNotesController = TextEditingController();
-  final TextEditingController _insuranceProviderController =TextEditingController();
-  final TextEditingController _insurancePolicyNumberController = TextEditingController();
+  final TextEditingController _additionalNotesController =
+      TextEditingController();
+  final TextEditingController _insuranceProviderController =
+      TextEditingController();
+  final TextEditingController _insurancePolicyNumberController =
+      TextEditingController();
 
   final SicknessService _sicknessService = SicknessService();
   final AppointmentService _appointmentService = AppointmentService();
@@ -101,12 +102,13 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   double _appointmentCost = 0.0;
   String? _selectedDuration;
   String? _registeredHospital;
-  List<String> _selectedSicknessTypes = [];
-  
+  final List<String> _selectedSicknessTypes = [];
+
   List<Sickness> _sicknesses = []; // Initialize the sickness list
 
   String get hospitalId => widget.hospital.id;
 
+  @override
   void initState() {
     super.initState();
     _loadSicknesses(); // Load sicknesses when the screen initializes
@@ -127,12 +129,11 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
   void _calculateCost() {
     setState(() {
-
       _appointmentCost = 0.0; // Reset before recalculating
       for (String sicknessName in _selectedSicknessTypes) {
         final sickness = _sicknesses.firstWhere(
           (s) => s.name == sicknessName,
-orElse: () =>
+          orElse: () =>
               Sickness(appointmentId: '', name: '', appointmentPrice: 0.0),
         );
         _appointmentCost += sickness.appointmentPrice; // Add to cost
@@ -199,10 +200,8 @@ orElse: () =>
                 },
               ),
             );
-            
+
             break;
-
-
 
           case 'date':
             fields.add(
@@ -297,38 +296,37 @@ orElse: () =>
             );
             break;
 
-                case 'insurance':
-          // Insurance Provider Field
-          fields.add(
-            TextFormField(
-              controller: _insuranceProviderController,
-              decoration: InputDecoration(
-                labelText: 'Insurance Provider (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+          case 'insurance':
+            // Insurance Provider Field
+            fields.add(
+              TextFormField(
+                controller: _insuranceProviderController,
+                decoration: InputDecoration(
+                  labelText: 'Insurance Provider (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-            ),
-          );
-          fields.add(const SizedBox(height: 16));
-          break;
+            );
+            fields.add(const SizedBox(height: 16));
+            break;
 
-        case 'policy':
-          // Insurance Policy Number Field
-          fields.add(
-            TextFormField(
-              controller: _insurancePolicyNumberController,
-              decoration: InputDecoration(
-                labelText: 'Insurance Policy Number (optional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+          case 'policy':
+            // Insurance Policy Number Field
+            fields.add(
+              TextFormField(
+                controller: _insurancePolicyNumberController,
+                decoration: InputDecoration(
+                  labelText: 'Insurance Policy Number (optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
-            ),
-          );
-          fields.add(const SizedBox(height: 16));
-          break;
-
+            );
+            fields.add(const SizedBox(height: 16));
+            break;
 
           case 'multi-select':
             // Create a DropdownButton for selecting symptoms
@@ -407,7 +405,6 @@ orElse: () =>
       fields.add(const SizedBox(height: 16)); // Add spacing between fields
     }
 
-
     // Add the submit button
     fields.add(
       SizedBox(
@@ -439,7 +436,7 @@ orElse: () =>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all required fields.')),
       );
-        return;
+      return;
     }
 
     if (_selectedDate == null ||
@@ -465,10 +462,13 @@ orElse: () =>
       if (token != null) {
         // Create an appointment instance using the Appointment model
         Appointment newAppointment = Appointment(
-          appointmentId:'', // You may want to leave this blank for the API to generate.
-          userId:'', // Set this to the current user's ID, likely from your auth token or storage
+          appointmentId:
+              '', // You may want to leave this blank for the API to generate.
+          userId:
+              '', // Set this to the current user's ID, likely from your auth token or storage
           doctorId: '', // If needed, you should provide this value
-          hospitalId:hospitalId, // Ensure this value is passed from the UI to the model
+          hospitalId:
+              hospitalId, // Ensure this value is passed from the UI to the model
           registeredHospital: _registeredHospital!,
           appointmentDate: _selectedDate!,
           appointmentTime: _selectedTime!,
@@ -476,13 +476,12 @@ orElse: () =>
           typeOfSickness: sicknessTypesString,
           additionalNotes: _additionalNotesController.text,
           email: _emailController.text,
-          appointmentCost:_appointmentCost,
+          appointmentCost: _appointmentCost,
           statusAppointment: "Not Approved",
           statusPayment: "Not Paid",
           insuranceProvider: _insuranceProviderController.text,
           insurancePolicyNumber: _insurancePolicyNumberController.text,
-          
-          );
+        );
 
         // Call the appointment service to create the appointment
         await _appointmentService.createAppointment(
@@ -504,15 +503,14 @@ orElse: () =>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Appointment booked successfully!')),
         );
-
-        }
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-       SnackBar(content: Text('Error occurred: ${e.toString()}')),
-  );
+        SnackBar(content: Text('Error occurred: ${e.toString()}')),
+      );
     } finally {
       setState(() {
-       _isLoading = false; // Stop loading
+        _isLoading = false; // Stop loading
       });
     }
   }
@@ -520,7 +518,6 @@ orElse: () =>
   void _resetForm() {
     setState(() {
       _emailController.clear();
-
 
       _additionalNotesController.clear();
       _insuranceProviderController.clear();
@@ -530,12 +527,7 @@ orElse: () =>
       _selectedDuration = null;
       _selectedSicknessTypes.clear();
       _appointmentCost = 0.0;
-      });
+    });
     _formKey.currentState?.reset();
   }
-
 }
-
-
-
-  
