@@ -307,12 +307,20 @@ class _PredictionPageState extends State<PredictionPage> {
   Widget _buildSymptomDropdown() {
     return DropdownSearch<String>(
       items: symptomList.map((s) => formatSymptom(s)).toList(),
-      popupProps: const PopupProps.menu(
+      popupProps: PopupProps.menu(
         showSearchBox: true,
+        searchFieldProps: TextFieldProps(
+          decoration: InputDecoration(
+            hintText: "Search symptom",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
       ),
       dropdownDecoratorProps: DropDownDecoratorProps(
         dropdownSearchDecoration: InputDecoration(
-          labelText: "Symptom",
+          labelText: "Symptoms",
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
           ),

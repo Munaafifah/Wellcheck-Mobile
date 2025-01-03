@@ -3,67 +3,65 @@ import 'package:http/http.dart' as http;
 import '../models/prediction_model.dart';
 
 class PredictionService {
-  final String djangoApiUrl =
-      "http://127.0.0.1:8000/status/"; // Django Prediction API
+  final String djangoApiUrl = "http://10.0.2.2:8000/status/"; // For emulator
   final String nodeApiUrl =
-      "http://localhost:5000/predictions2"; // Node.js MongoDB API
+      "http://10.0.2.2:5000/predictions2"; // Node.js MongoDB API
 
   Future<PredictionModel?> sendSymptoms(
       String token, List<String> symptoms) async {
     try {
       final Map<String, dynamic> payload = {
-        'symptoms': symptoms, // Send symptoms list to Django
+        'symptoms': symptoms,
       };
 
       final response = await http.post(
         Uri.parse(djangoApiUrl),
         headers: {
-          'Authorization': 'Bearer $token', // Pass the token here
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: json.encode(payload),
       );
 
-      final Map<String, dynamic> data = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
 
-      if (data.containsKey("top_diseases") &&
-          data.containsKey("probabilityList")) {
-        // Attach symptoms to the prediction model
-        final prediction = PredictionModel.fromJson(data);
-        prediction.symptomsList = symptoms; // Store the symptoms list
+        if (data.containsKey("top_diseases") &&
+            data.containsKey("probabilityList")) {
+          final prediction = PredictionModel.fromJson(data);
+          prediction.symptomsList = symptoms;
 
-        // Extract probabilities from probabilityList and convert to numbers
-        prediction.probabilityList = (data['probabilityList'] as List)
-            .map((prob) => double.tryParse(prob.replaceAll("%", "")) ?? 0.0)
-            .toList();
+          prediction.probabilityList = (data['probabilityList'] as List)
+              .map((prob) => double.tryParse(prob.replaceAll("%", "")) ?? 0.0)
+              .toList();
 
-        // Save prediction to MongoDB after receiving response from Django
-        await savePredictionToDB(token, prediction); // Pass the token here
+          await savePredictionToDB(token, prediction);
 
-        return prediction;
+          return prediction;
+        } else {
+          print("Invalid response format");
+          return null;
+        }
       } else {
-        print("Key 'top_diseases' or 'probabilityList' not found in response");
+        print("Failed to fetch prediction: ${response.statusCode}");
         return null;
       }
     } catch (e) {
       print("Error during API call: $e");
-      return null;
+      throw Exception("Failed to connect to API: $e");
     }
   }
 
-  // Save predictions to MongoDB via Node.js
   Future<void> savePredictionToDB(
       String token, PredictionModel prediction) async {
     try {
-      // Include symptoms list in the payload to MongoDB
       final Map<String, dynamic> payload = prediction.toJson();
       payload['symptomsList'] = prediction.symptomsList;
 
       final response = await http.post(
         Uri.parse(nodeApiUrl),
         headers: {
-          'Authorization':
-              'Bearer $token', // Pass the token to Node.js endpoint
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: json.encode(payload),
@@ -76,6 +74,7 @@ class PredictionService {
       }
     } catch (e) {
       print("Error during DB save: $e");
+      throw Exception("Failed to save to database: $e");
     }
   }
 }
