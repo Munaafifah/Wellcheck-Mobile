@@ -4,6 +4,7 @@ import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
 import '../pages/appointment_page.dart';
 import 'package:intl/intl.dart';
+import '../pages/editAppointment_page.dart';
 import 'dart:convert';
 // For date formatting
 
@@ -192,134 +193,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
       text: appointment.typeOfSickness,
     );
 
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Edit Appointment"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Date Input
-              TextField(
-                controller: dateController,
-                decoration: const InputDecoration(
-                  labelText: "Date",
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                readOnly: true,
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: appointment.appointmentDate,
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2100),
-                  );
-
-                  if (pickedDate != null) {
-                    dateController.text =
-                        DateFormat('yyyy-MM-dd').format(pickedDate);
-                  }
-                },
-              ),
-
-              // Time Input
-              TextField(
-                controller: timeController,
-                decoration: const InputDecoration(
-                  labelText: "Time",
-                  prefixIcon: Icon(Icons.access_time),
-                ),
-                readOnly: true,
-                onTap: () async {
-                  TimeOfDay? pickedTime = await showTimePicker(
-                    context: context,
-                    initialTime: appointment.appointmentTime,
-                  );
-
-                  if (pickedTime != null) {
-                    timeController.text = pickedTime.format(context);
-                  }
-                },
-              ),
-
-              // Duration Input
-              TextField(
-                controller: durationController,
-                decoration: const InputDecoration(
-                  labelText: "Duration (minutes)",
-                  prefixIcon: Icon(Icons.timer),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-
-              // Type of Sickness Input
-              TextField(
-                controller: typeOfSicknessController,
-                decoration: const InputDecoration(
-                  labelText: "Type of Sickness",
-                  prefixIcon: Icon(Icons.medical_services),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                // Validate inputs
-                if (dateController.text.isEmpty ||
-                    timeController.text.isEmpty ||
-                    durationController.text.isEmpty ||
-                    typeOfSicknessController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("All fields are required")),
-                  );
-                  return;
-                }
-
-                // Combine date and time for the updated value
-                DateTime parsedDateTime = DateTime.parse(
-                    "${dateController.text}T${timeController.text}:00");
-
-                int parsedDuration = int.parse(durationController.text);
-
-                // Call the service method to update appointment
-                final token = await _storage.read(key: "auth_token");
-                if (token != null) {
-                  final parsedDate = parsedDateTime.toLocal();
-                  final String appointmentTime =
-                      "${parsedDate.hour.toString().padLeft(2, '0')}:${parsedDate.minute.toString().padLeft(2, '0')}";
-
-                  await _appointmentService.updateAppointment(
-                    token,
-                    appointment.appointmentId,
-                    parsedDateTime.toIso8601String(), // ISO format for date
-                    appointmentTime, // "HH:mm" format for time
-                    parsedDuration.toString(),
-                    typeOfSicknessController.text,
-                  );
-
-                  // Refresh appointments
-                  _fetchAppointments(); // Refresh the appointment list
-                  Navigator.pop(context); // Close dialog
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Failed to update appointment: $e")),
-                );
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
-    );
+    
   }
 
   List<Appointment> _getPaginatedAppointments() {
@@ -540,9 +414,16 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.orange),
-              onPressed: () => _editAppointment(appointment),
-            ),
+  icon: const Icon(Icons.edit, color: Colors.orange),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditAppointmentPage(appointment: appointment),
+      ),
+    );
+  },
+),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteAppointment(appointment.appointmentId),
