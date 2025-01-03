@@ -19,6 +19,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
   final SicknessService _sicknessService = SicknessService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   late Future<List<Sickness>> futureSicknesses;
+  
 
   @override
   void initState() {
@@ -106,7 +107,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
   List<Sickness> _sicknesses = []; // Initialize the sickness list
 
-  String get hospitalId => widget.hospital.id;
+  String get hospitalId => widget.hospital.hospitalId;
 
   @override
   void initState() {
@@ -465,8 +466,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           appointmentId:'', // You may want to leave this blank for the API to generate.
           userId:'', // Set this to the current user's ID, likely from your auth token or storage
           doctorId: '', // If needed, you should provide this value
-          hospitalId:
-              hospitalId, // Ensure this value is passed from the UI to the model
+          hospitalId: hospitalId,// Ensure this value is passed from the UI to the model
           registeredHospital: widget.hospital.name,
           appointmentDate: _selectedDate!,
           appointmentTime: _selectedTime!,
@@ -490,8 +490,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           typeOfSickness: newAppointment.typeOfSickness,
           additionalNotes: newAppointment.additionalNotes,
           email: newAppointment.email,
-          hospitalId: hospitalId,
-          registeredHospital: widget.hospital.name,
+          hospitalId: newAppointment.hospitalId,
+          registeredHospital: newAppointment.registeredHospital,
           appointmentCost: newAppointment.appointmentCost,
           statusPayment: newAppointment.statusPayment,
           statusAppointment: newAppointment.statusAppointment,

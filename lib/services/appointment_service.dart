@@ -9,11 +9,11 @@ class AppointmentService {
 
   // Helper method to handle API requests
   Future<http.Response> makeRequest(
-    String method,
-    String endpoint, {
-    Map<String, String>? headers,
-    dynamic body,
-  }) async {
+      String method,
+      String endpoint, {
+        Map<String, String>? headers,
+        dynamic body,
+      }) async {
     Uri uri = Uri.parse("$baseUrl$endpoint");
     if (method == 'POST') {
       return await http.post(uri, headers: headers, body: jsonEncode(body));
@@ -68,9 +68,9 @@ class AppointmentService {
       "statusAppointment": statusAppointment,
       "hospitalId": hospitalId,
       "registeredHospital": registeredHospital,
-      "insuranceProvider": insuranceProvider, // Include insurance provider
-      "insurancePolicyNumber": insurancePolicyNumber, // Include insurance policy number
-      "preferredLanguage": preferredLanguage, // Include preferred language
+      "insuranceProvider": insuranceProvider,
+      "insurancePolicyNumber": insurancePolicyNumber,
+      "preferredLanguage": preferredLanguage,
     });
 
     // Handle response
@@ -94,45 +94,45 @@ class AppointmentService {
         return data.map((item) => Appointment.fromJson(item)).toList();
       } else {
         throw Exception('Failed to fetch appointments: ${response.body}');
-      }
+        }
     } catch (e) {
       throw Exception('An error occurred while fetching appointments: $e');
     }
   }
 
-  // Update appointment date, time, duration, and type of sickness
+  // Update appointment's date, time, duration, and type of sickness
   Future<void> updateAppointment(
     String token,
     String appointmentId,
-    String appointmentDate, // Expecting a string date in ISO format
-    String appointmentTime, // Expecting a string time in "HH:mm" format
-    String duration, // Expect duration as string
-    String typeOfSickness) async { // Expecting the type of sickness
-    
-  final response = await http.put(
-    Uri.parse("$baseUrl/appointments/$appointmentId"),
-    headers: {
-      "Authorization": "Bearer $token",
-      "Content-Type": "application/json",
-    },
-    body: jsonEncode({
-      "appointmentDate": appointmentDate, // Pass appointment date
-      "appointmentTime": appointmentTime,   // Pass appointment time
-      "duration": duration,                   // Pass duration
-      "typeOfSickness": typeOfSickness,       // Pass type of sickness
-    }),
-  );
+    String appointmentDate,  // Expecting ISO formatted string
+    String appointmentTime,   // Expecting "HH:mm" formatted string
+    String duration,          // Duration in string format
+    String typeOfSickness     // Type of sickness
+  ) async {
+    final response = await http.put(
+      Uri.parse("$baseUrl/appointments/$appointmentId"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "appointmentDate": appointmentDate,   // Send appointment date
+        "appointmentTime": appointmentTime,    // Send appointment time
+        "duration": duration,                   // Send duration
+        "typeOfSickness": typeOfSickness,      // Send type of sickness
+      }),
+    );
 
-  // Check for successful response
-  if (response.statusCode != 200) {
-    throw Exception("Failed to update appointment: ${response.body}");
+    // Check for successful response
+    if (response.statusCode != 200) {
+      throw Exception("Failed to update appointment: ${response.body}");
+    }
   }
-}
 
-// Delete an appointment
+  // Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
-      Uri.parse("$baseUrl/appointments/$appointmentId"),
+      Uri.parse("$baseUrl/appointments/$appointmentId"), // Endpoint for deleting appointment
       headers: {
         "Authorization": "Bearer $token",
       },
@@ -140,6 +140,6 @@ class AppointmentService {
 
     if (response.statusCode != 200) {
       throw Exception("Failed to delete appointment: ${response.body}");
-        }
+    }
   }
 }

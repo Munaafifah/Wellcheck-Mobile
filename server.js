@@ -594,6 +594,8 @@ app.post("/appointments", async (req, res) => {
       email,
       insuranceProvider,
       insurancePolicyNumber,
+      hospitalId,
+      registeredHospital,
       appointmentCost, // New field for cost
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
