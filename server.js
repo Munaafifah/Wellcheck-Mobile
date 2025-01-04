@@ -567,7 +567,6 @@ app.get("/appointments/:userId", async (req, res) => {
 });
 
 /// Endpoint for adding a new appointment
-// Endpoint for adding a new appointment
 app.post("/appointments", async (req, res) => {
   try {
     // Extract token from Authorization header
@@ -696,40 +695,40 @@ app.post("/appointments", async (req, res) => {
   }
 });
 
-app.put("/update-appointment", async (req, res) => {
+app.put("/update-appointment/:appointmentId", async (req, res) => {
+  console.log("Received request to update appointment with ID:", req.params.appointmentId);
+
   try {
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+    const { appointmentDate, appointmentTime, duration, typeOfSickness } = req.body;
+    const { appointmentId } = req.params;
 
-      const { appointmentId, appointmentDate, appointmentTime, duration, typeOfSickness } = req.body;
+    // Validate required fields
+    if (!appointmentDate || !appointmentTime || !duration || !typeOfSickness) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-      // Validate that required fields are present
-      if (!appointmentId || !appointmentDate || !appointmentTime || !duration || !typeOfSickness) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
+    // Combine date and time
+    const fullAppointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00.000Z`);
 
-      // Create the full appointment date-time in ISO format if needed
-      const fullAppointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00.000Z`);
-
-      // Update the appointment in the database
+    try {
       await client.connect();
-      const appointments = client.db("Wellcheck").collection("appointments");
+      console.log("Connected to MongoDB");
+
+      const appointments = client.db("Wellcheck2").collection("appointments");
 
       const result = await appointments.updateOne(
         { appointmentId },
         {
           $set: {
-            appointmentDate: fullAppointmentDateTime, // Set the full date-time
-            appointmentTime: appointmentTime, // Assuming this is a string
-            duration, // Update duration
-            typeOfSickness, // Update type of sickness
+            appointmentDate: fullAppointmentDateTime,
+            appointmentTime,
+            duration,
+            typeOfSickness,
           },
         }
       );
@@ -738,9 +737,12 @@ app.put("/update-appointment", async (req, res) => {
         return res.status(404).json({ error: "Appointment not found" });
       }
 
-      res.json({ message: "Appointment updated successfully" });
-    });
+      res.status(200).json({ message: "Appointment updated successfully", appointmentId });
+    } finally {
+      await client.close();
+    }
   } catch (error) {
+    console.error("Error updating appointment:", error);
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
