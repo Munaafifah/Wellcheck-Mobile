@@ -151,7 +151,7 @@ class AppointmentService {
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
       Uri.parse(
-          "$baseUrl/appointments/$appointmentId"), // Endpoint for deleting appointment
+          "$baseUrl/delete-appointment/$appointmentId"), // Endpoint for deleting appointment
       headers: {
         "Authorization": "Bearer $token",
       },

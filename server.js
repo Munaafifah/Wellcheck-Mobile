@@ -747,6 +747,38 @@ app.put("/update-appointment/:appointmentId", async (req, res) => {
   }
 });
 
+// DELETE endpoint for deleting an appointment
+app.delete('/delete-appointment/:appointmentId', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Verify JWT token
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+
+      const appointmentId = req.params.appointmentId;  // Corrected parameter
+      await client.connect();
+      const appointments = client.db("Wellcheck2").collection("appointments");
+
+      const result = await appointments.deleteOne({ appointmentId });
+
+      if (result.deletedCount === 0) {  // Check deletedCount instead
+        return res.status(404).json({ message: 'Appointment not found' });
+      }
+
+      res.json({ message: 'Appointment deleted successfully' });
+    });
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Update patient details endpoint
 app.put("/patient/:userId", async (req, res) => {
   try {
