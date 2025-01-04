@@ -7,7 +7,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class EditAppointmentPage extends StatefulWidget {
   final Appointment appointment;
 
-  const EditAppointmentPage({Key? key, required this.appointment}) : super(key: key);
+  const EditAppointmentPage({Key? key, required this.appointment})
+      : super(key: key);
 
   @override
   _EditAppointmentPageState createState() => _EditAppointmentPageState();
@@ -22,17 +23,25 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
   late TextEditingController durationController;
   late TextEditingController typeOfSicknessController;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
   bool isLoading = false;
+  String? _selectedDuration;
+
+  List<String> durationOptions = ['15', '30', '45', '60'];
 
   @override
   void initState() {
     super.initState();
     selectedDate = widget.appointment.appointmentDate;
     selectedTime = widget.appointment.appointmentTime;
-    dateController = TextEditingController(text: DateFormat('yyyy-MM-dd').format(selectedDate));
-    timeController = TextEditingController(text: widget.appointment.getFormattedTime());
-    durationController = TextEditingController(text: widget.appointment.duration);
-    typeOfSicknessController = TextEditingController(text: widget.appointment.typeOfSickness);
+    dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(selectedDate));
+    timeController =
+        TextEditingController(text: widget.appointment.getFormattedTime());
+    durationController =
+        TextEditingController(text: widget.appointment.duration);
+    typeOfSicknessController =
+        TextEditingController(text: widget.appointment.typeOfSickness);
   }
 
   @override
@@ -71,7 +80,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Confirm Update"),
-          content: const Text("Are you sure you want to update this appointment?"),
+          content:
+              const Text("Are you sure you want to update this appointment?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -123,7 +133,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to update appointment: ${e.toString()}")),
+        SnackBar(
+            content: Text("Failed to update appointment: ${e.toString()}")),
       );
     } finally {
       if (mounted) {
@@ -196,7 +207,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                   if (pickedDate != null) {
                     setState(() {
                       selectedDate = pickedDate;
-                      dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                      dateController.text =
+                          DateFormat('yyyy-MM-dd').format(pickedDate);
                     });
                   }
                 },
@@ -215,18 +227,79 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                     setState(() {
                       selectedTime = pickedTime;
                       timeController.text =
-                        '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
+                          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
                     });
                   }
                 },
               ),
               const SizedBox(height: 20),
-              _buildInputField(
-                controller: durationController,
-                label: "Duration (minutes)",
-                icon: Icons.timer,
-                keyboardType: TextInputType.number,
+              DropdownButtonFormField<String>(
+                value: _selectedDuration, // Maintain the selected duration
+                decoration: InputDecoration(
+                  labelText:
+                      "Duration (minutes)", // The label text for the field
+                  labelStyle: TextStyle(
+                    color: Color(
+                        0xFF4CAF93), // Match the color scheme of other fields
+                    fontWeight: FontWeight.bold, // Bold for emphasis
+                  ),
+                  hintText:
+                      "Select Duration", // Provide a hint text for empty selection
+                  hintStyle: TextStyle(
+                    color:
+                        Color(0xFFB0B0B0), // Lighter gray color for hint text
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                        12), // Round corners to match other fields
+                    borderSide: const BorderSide(
+                        color: Color(0xFF4CAF93),
+                        width: 2), // Match border color
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12), // Round corners
+                    borderSide: const BorderSide(
+                        color: Color(0xFF4CAF93),
+                        width: 1.5), // Consistent border thickness
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12), // Round corners
+                    borderSide: const BorderSide(
+                        color: Color(0xFF4CAF93),
+                        width: 2), // Match focus state border color
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 12), // Same padding as other fields
+                ),
+                items: durationOptions.map((option) {
+                  return DropdownMenuItem<String>(
+                    value: option,
+                    child: Text(
+                      option,
+                      style: TextStyle(
+                        fontSize:
+                            16, // Match the font size with other fields for consistency
+                        color: Colors
+                            .black, // Black color for the text for better readability
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedDuration = value; // Update the selected duration
+                    durationController.text = value ??
+                        ""; // Set controller text to the selected value
+                  });
+                },
+                validator: (value) {
+                  return value == null
+                      ? 'Please select a duration'
+                      : null; // Validation message for empty selection
+                },
               ),
+              
               const SizedBox(height: 20),
               _buildInputField(
                 controller: typeOfSicknessController,
@@ -246,7 +319,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                 ),
                 child: isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save Changes", style: TextStyle(fontSize: 16)),
+                    : const Text("Save Changes",
+                        style: TextStyle(fontSize: 16)),
               ),
             ],
           ),
