@@ -3,9 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
 import '../pages/appointment_page.dart';
-import 'package:intl/intl.dart';
 import '../pages/editAppointment_page.dart';
-import 'dart:convert';
 
 class ViewAppointmentsPage extends StatefulWidget {
   final String userId;

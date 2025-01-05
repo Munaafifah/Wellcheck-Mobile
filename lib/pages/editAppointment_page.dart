@@ -7,7 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class EditAppointmentPage extends StatefulWidget {
   final Appointment appointment;
 
-  const EditAppointmentPage({Key? key, required this.appointment}) : super(key: key);
+  const EditAppointmentPage({super.key, required this.appointment});
 
   @override
   _EditAppointmentPageState createState() => _EditAppointmentPageState();
@@ -29,10 +29,14 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     super.initState();
     selectedDate = widget.appointment.appointmentDate;
     selectedTime = widget.appointment.appointmentTime;
-    dateController = TextEditingController(text: DateFormat('yyyy-MM-dd').format(selectedDate));
-    timeController = TextEditingController(text: widget.appointment.getFormattedTime());
-    durationController = TextEditingController(text: widget.appointment.duration);
-    typeOfSicknessController = TextEditingController(text: widget.appointment.typeOfSickness);
+    dateController = TextEditingController(
+        text: DateFormat('yyyy-MM-dd').format(selectedDate));
+    timeController =
+        TextEditingController(text: widget.appointment.getFormattedTime());
+    durationController =
+        TextEditingController(text: widget.appointment.duration);
+    typeOfSicknessController =
+        TextEditingController(text: widget.appointment.typeOfSickness);
   }
 
   @override
@@ -71,7 +75,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Confirm Update"),
-          content: const Text("Are you sure you want to update this appointment?"),
+          content:
+              const Text("Are you sure you want to update this appointment?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -123,7 +128,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to update appointment: ${e.toString()}")),
+        SnackBar(
+            content: Text("Failed to update appointment: ${e.toString()}")),
       );
     } finally {
       if (mounted) {
@@ -147,7 +153,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Color(0xFF4CAF93)),
+        prefixIcon: Icon(icon, color: const Color(0xFF4CAF93)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF4CAF93), width: 2),
@@ -196,7 +202,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                   if (pickedDate != null) {
                     setState(() {
                       selectedDate = pickedDate;
-                      dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                      dateController.text =
+                          DateFormat('yyyy-MM-dd').format(pickedDate);
                     });
                   }
                 },
@@ -215,7 +222,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                     setState(() {
                       selectedTime = pickedTime;
                       timeController.text =
-                        '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
+                          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
                     });
                   }
                 },
@@ -246,7 +253,8 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                 ),
                 child: isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save Changes", style: TextStyle(fontSize: 16)),
+                    : const Text("Save Changes",
+                        style: TextStyle(fontSize: 16)),
               ),
             ],
           ),
