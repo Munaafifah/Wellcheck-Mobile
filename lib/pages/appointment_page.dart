@@ -18,7 +18,7 @@ class AppointmentPage extends StatefulWidget {
 class _AppointmentPageState extends State<AppointmentPage> {
   late Future<List<Hospital>> futureHospitals;
   final SicknessService _sicknessService = SicknessService();
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  //final FlutterSecureStorage _storage = const FlutterSecureStorage();
   late Future<List<Sickness>> futureSicknesses;
 
   @override
@@ -202,7 +202,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   bool _isLoading = false;
   double _appointmentCost = 0.0;
   String? _selectedDuration;
-  String? _registeredHospital;
+  //String? _registeredHospital;
   final List<String> _selectedSicknessTypes = [];
 
   List<Sickness> _sicknesses = []; // Initialize the sickness list
