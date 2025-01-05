@@ -4,12 +4,8 @@ import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
 import '../pages/appointment_page.dart';
 import 'package:intl/intl.dart';
-<<<<<<< HEAD
-=======
 import '../pages/editAppointment_page.dart';
 import 'dart:convert';
->>>>>>> 44675053da59aefc9b909d4547d7a99326c0cef7
-// For date formatting
 
 class ViewAppointmentsPage extends StatefulWidget {
   final String userId;
@@ -195,8 +191,6 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     TextEditingController typeOfSicknessController = TextEditingController(
       text: appointment.typeOfSickness,
     );
-
-    
   }
 
   List<Appointment> _getPaginatedAppointments() {
@@ -417,16 +411,17 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
               },
             ),
             IconButton(
-  icon: const Icon(Icons.edit, color: Colors.orange),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditAppointmentPage(appointment: appointment),
-      ),
-    );
-  },
-),
+              icon: const Icon(Icons.edit, color: Colors.orange),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        EditAppointmentPage(appointment: appointment),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteAppointment(appointment.appointmentId),
