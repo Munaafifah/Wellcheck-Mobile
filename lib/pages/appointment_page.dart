@@ -1,10 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../services/sickness_service.dart';
 import '../services/hospital_service.dart';
 import '../models/sickness_model.dart';
-import '../models/hospital_model.dart'; // Ensure this file exists and it's correctly defined
+import '../models/hospital_model.dart';
 import '../models/appointment_model.dart';
 
 class AppointmentPage extends StatefulWidget {
@@ -24,45 +25,145 @@ class _AppointmentPageState extends State<AppointmentPage> {
   void initState() {
     super.initState();
     futureHospitals = HospitalService().fetchHospitals();
-    futureSicknesses = _sicknessService.fetchSicknesses(); // Fetch sicknesses
+    futureSicknesses = _sicknessService.fetchSicknesses();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Hospital')),
-      body: FutureBuilder<List<Hospital>>(
-        future: futureHospitals,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF4CAF93),
+        title: const Text(
+          'Select Hospital',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF4CAF93).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: FutureBuilder<List<Hospital>>(
+          future: futureHospitals,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF4CAF93),
+                ),
+              );
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 60,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          List<Hospital> hospitals = snapshot.data!;
-          return ListView.builder(
-            itemCount: hospitals.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(hospitals[index].name),
-                onTap: () {
-                  // Load sicknesses only when the hospital is selected
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AppointmentFormScreen(
-                        hospital: hospitals[index],
-                        futureSicknesses:
-                            futureSicknesses, // Pass sicknesses to AppointmentFormScreen
+            List<Hospital> hospitals = snapshot.data!;
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ListView.builder(
+                itemCount: hospitals.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(15),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AppointmentFormScreen(
+                                hospital: hospitals[index],
+                                futureSicknesses: futureSicknesses,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4CAF93).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.local_hospital,
+                                  color: Color(0xFF4CAF93),
+                                  size: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      hospitals[index].name,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Tap to book appointment',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: Color(0xFF4CAF93),
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   );
                 },
-              );
-            },
-          );
-        },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -106,7 +207,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
   List<Sickness> _sicknesses = []; // Initialize the sickness list
 
-  String get hospitalId => widget.hospital.id;
+  String get hospitalId => widget.hospital.hospitalId;
 
   @override
   void initState() {
@@ -143,34 +244,69 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Book Appointment at ${widget.hospital.name}'),
+        elevation: 0,
+        title: Text(
+          'Book Appointment at ${widget.hospital.name}',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF4CAF93),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 6,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _createFormFields(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF4CAF93).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Appointment Details',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4CAF93),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ..._createFormFields(),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFormField(Widget field) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: field,
     );
   }
 
@@ -406,30 +542,80 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
     }
 
     // Add the submit button
+    // Update the submit button styling
     fields.add(
-      SizedBox(
+      Container(
         width: double.infinity,
+        height: 50,
+        margin: const EdgeInsets.only(top: 24),
         child: ElevatedButton(
           onPressed: _isLoading ? null : _submitForm,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4CAF93),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 4,
+          ),
           child: _isLoading
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Text('Book Appointment'),
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'Book Appointment',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );
 
-    // Optionally display appointment cost
-    fields.add(Padding(
-        padding: const EdgeInsets.only(top: 16.0),
-        child: Text(
-          'Estimated Cost: RM${_appointmentCost.toStringAsFixed(2)}',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.bold,
+    // Update the cost display styling
+    fields.add(
+      Container(
+        margin: const EdgeInsets.only(top: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF4CAF93).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF4CAF93).withOpacity(0.3),
           ),
-        )));
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Estimated Cost:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4CAF93),
+              ),
+            ),
+            Text(
+              'RM${_appointmentCost.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4CAF93),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 
     return fields;
   }
+
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
@@ -465,8 +651,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           appointmentId:'', // You may want to leave this blank for the API to generate.
           userId:'', // Set this to the current user's ID, likely from your auth token or storage
           doctorId: '', // If needed, you should provide this value
-          hospitalId:
-              hospitalId, // Ensure this value is passed from the UI to the model
+          hospitalId: hospitalId,// Ensure this value is passed from the UI to the model
           registeredHospital: widget.hospital.name,
           appointmentDate: _selectedDate!,
           appointmentTime: _selectedTime!,
@@ -490,8 +675,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           typeOfSickness: newAppointment.typeOfSickness,
           additionalNotes: newAppointment.additionalNotes,
           email: newAppointment.email,
-          hospitalId: hospitalId,
-          registeredHospital: widget.hospital.name,
+          hospitalId: newAppointment.hospitalId,
+          registeredHospital: newAppointment.registeredHospital,
           appointmentCost: newAppointment.appointmentCost,
           statusPayment: newAppointment.statusPayment,
           statusAppointment: newAppointment.statusAppointment,

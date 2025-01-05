@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/appointment_model.dart';
 import 'package:flutter/material.dart';
 import '../config.dart';
+import 'package:intl/intl.dart'; // For date formatting
 
 class AppointmentService {
   static const String baseUrl = Config.baseUrl; // Replace with your API URL
@@ -42,7 +43,8 @@ class AppointmentService {
     String statusPayment = "Not Paid", // Optional parameter
     String statusAppointment = "Not Approved", // Optional parameter
     String? insuranceProvider, // Optional parameter for insurance provider
-    String? insurancePolicyNumber, // Optional parameter for insurance policy number
+    String?
+        insurancePolicyNumber, // Optional parameter for insurance policy number
     String? preferredLanguage, // Optional parameter for preferred language
   }) async {
     final String formattedTime =
@@ -68,9 +70,9 @@ class AppointmentService {
       "statusAppointment": statusAppointment,
       "hospitalId": hospitalId,
       "registeredHospital": registeredHospital,
-      "insuranceProvider": insuranceProvider, // Include insurance provider
-      "insurancePolicyNumber": insurancePolicyNumber, // Include insurance policy number
-      "preferredLanguage": preferredLanguage, // Include preferred language
+      "insuranceProvider": insuranceProvider,
+      "insurancePolicyNumber": insurancePolicyNumber,
+      "preferredLanguage": preferredLanguage,
     });
 
     // Handle response
@@ -80,10 +82,12 @@ class AppointmentService {
   }
 
   // Fetch appointments for a specific user
-  Future<List<Appointment>> fetchAppointments(String token, String userId) async {
+  Future<List<Appointment>> fetchAppointments(
+      String token, String userId) async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
+        Uri.parse(
+            "$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -100,39 +104,54 @@ class AppointmentService {
     }
   }
 
-  // Update appointment date, time, duration, and type of sickness
+  // Update appointment's date, time, duration, and type of sickness
   Future<void> updateAppointment(
     String token,
     String appointmentId,
-    String appointmentDate, // Expecting a string date in ISO format
-    String appointmentTime, // Expecting a string time in "HH:mm" format
-    String duration, // Expect duration as string
-    String typeOfSickness) async { // Expecting the type of sickness
-    
-  final response = await http.put(
-    Uri.parse("$baseUrl/appointments/$appointmentId"),
-    headers: {
-      "Authorization": "Bearer $token",
-      "Content-Type": "application/json",
-    },
-    body: jsonEncode({
-      "appointmentDate": appointmentDate, // Pass appointment date
-      "appointmentTime": appointmentTime,   // Pass appointment time
-      "duration": duration,                   // Pass duration
-      "typeOfSickness": typeOfSickness,       // Pass type of sickness
-    }),
-  );
+    DateTime appointmentDate,
+    TimeOfDay appointmentTime,
+    String duration,
+    String typeOfSickness,
+  ) async {
+    final formattedDate = DateFormat('yyyy-MM-dd').format(appointmentDate);
+    final formattedTime = '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
 
-  // Check for successful response
-  if (response.statusCode != 200) {
-    throw Exception("Failed to update appointment: ${response.body}");
-  }
-}
+    print("Updating appointment with ID: $appointmentId");
+    print("Date: $formattedDate");
+    print("Time: $formattedTime");
+    print("Request URL: $baseUrl/update-appointment/$appointmentId"); // Add URL logging
 
-// Delete an appointment
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/update-appointment/$appointmentId'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "appointmentDate": formattedDate,
+          "appointmentTime": formattedTime,
+          "duration": duration,
+          "typeOfSickness": typeOfSickness,
+        }),
+      );
+
+      print("Response status code: ${response.statusCode}"); // Add status code logging
+      print("Response body: ${response.body}"); // Add response body logging
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to update appointment: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      print("Error during API call: $e"); // Add error logging
+      throw Exception("Failed to update appointment: $e");
+    }}
+
+  // Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
-      Uri.parse("$baseUrl/appointments/$appointmentId"),
+      Uri.parse(
+          "$baseUrl/delete-appointment/$appointmentId"), // Endpoint for deleting appointment
       headers: {
         "Authorization": "Bearer $token",
       },
@@ -140,6 +159,6 @@ class AppointmentService {
 
     if (response.statusCode != 200) {
       throw Exception("Failed to delete appointment: ${response.body}");
-        }
+    }
   }
 }

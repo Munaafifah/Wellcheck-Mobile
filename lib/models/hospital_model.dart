@@ -2,15 +2,17 @@
 // import 'package:flutter/material.dart';
 
 class Hospital {
-  final String id;
-  final String name;
-  final List<HospitalFormField> formFields;
+  final String id;           // MongoDB document ID
+  final String hospitalId;  // Your custom hospital ID for reference
+  final String name;        // Display name of the hospital
+  final List<HospitalFormField> formFields; // Form fields
 
-  Hospital({required this.id, required this.name, required this.formFields});
+  Hospital({required this.id, required this.hospitalId, required this.name, required this.formFields});
 
   factory Hospital.fromJson(Map<String, dynamic> json) {
     return Hospital(
       id: json['_id'],
+      hospitalId: json['hospitalId'], // Ensure this is captured
       name: json['name'],
       formFields: (json['form_fields'] as List)
           .map((field) => HospitalFormField.fromJson(field))
