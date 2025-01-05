@@ -4,7 +4,6 @@ import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
 import '../pages/appointment_page.dart';
 import 'package:intl/intl.dart';
-import 'dart:convert';
 // For date formatting
 
 class ViewAppointmentsPage extends StatefulWidget {
