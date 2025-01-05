@@ -247,7 +247,8 @@ class _ViewSymptomsPageState extends State<ViewSymptomsPage> {
   void _fetchSymptoms() async {
     final token = await _storage.read(key: "auth_token");
     if (token != null) {
-      final symptoms = await _symptomService.fetchSymptoms(token, widget.userId);
+      final symptoms =
+          await _symptomService.fetchSymptoms(token, widget.userId);
       setState(() {
         _symptoms = symptoms;
       });
@@ -316,7 +317,7 @@ class _ViewSymptomsPageState extends State<ViewSymptomsPage> {
       ),
     );
 
-    if (newDescription != null && newDescription.isNotEmpty) {
+    if (newDescription.isNotEmpty) {
       final token = await _storage.read(key: "auth_token");
       if (token != null) {
         await _symptomService.updateSymptom(token, symptomId, newDescription);
@@ -384,68 +385,67 @@ class _ViewSymptomsPageState extends State<ViewSymptomsPage> {
 
   Widget _buildSymptomsList() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(40),
-          topRight: Radius.circular(40),
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(40),
+            topRight: Radius.circular(40),
+          ),
         ),
-      ),
-      child: _symptoms!.isEmpty
-          ? const Center(
-              child: Text(
-                "No symptoms recorded yet",
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _symptoms!.length,
-              itemBuilder: (context, index) {
-                final symptom = _symptoms![index];
-                return Card(
-                  elevation: 3,
-                  margin: const EdgeInsets.only(bottom: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    title: Text(
-                      symptom.symptomDescription,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        "Recorded: ${symptom.timestamp}",
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Color(0xFF4CAF93)),
-                          onPressed: () => _editSymptom(
-                            symptom.symptomId,
-                            symptom.symptomDescription,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () =>
-                              _deleteSymptomWithConfirmation(symptom.symptomId),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
+        child: _symptoms!.isEmpty
+            ? const Center(
+                child: Text(
+                  "No symptoms recorded yet",
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
               )
-            );
+            : ListView.builder(
+                itemCount: _symptoms!.length,
+                itemBuilder: (context, index) {
+                  final symptom = _symptoms![index];
+                  return Card(
+                    elevation: 3,
+                    margin: const EdgeInsets.only(bottom: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      title: Text(
+                        symptom.symptomDescription,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          "Recorded: ${symptom.timestamp}",
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit,
+                                color: Color(0xFF4CAF93)),
+                            onPressed: () => _editSymptom(
+                              symptom.symptomId,
+                              symptom.symptomDescription,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteSymptomWithConfirmation(
+                                symptom.symptomId),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }));
   }
 }
