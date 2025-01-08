@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:session/services/stripe_service.dart';
+import 'package:session/models/appointment_model.dart';
+import 'package:session/services/appointment_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class Payment extends StatefulWidget {
-  const Payment({super.key});
+  final String userId;
+
+  const Payment({
+    super.key,
+    required this.userId,
+  });
 
   @override
   State<Payment> createState() => _PaymentPageState();
@@ -10,12 +18,66 @@ class Payment extends StatefulWidget {
 
 class _PaymentPageState extends State<Payment> {
   bool _isLoading = false;
-  final double _amount = 10.00; // Example amount
+  final _appointmentService = AppointmentService();
+  final _storage = const FlutterSecureStorage();
+  List<Appointment> _appointments = [];
+  bool _isLoadingAppointments = true;
+  double _totalAmount = 0.0;
 
-  Future<void> _handlePayment() async {
+  @override
+  void initState() {
+    super.initState();
+    _fetchAppointments();
+  }
+
+  Future<void> _fetchAppointments() async {
+    try {
+      final token = await _storage.read(key: "auth_token");
+      if (token == null) {
+        throw Exception("Authentication token not found");
+      }
+
+      final appointments = await _appointmentService.fetchAppointments(
+        token,
+        widget.userId,
+      );
+
+      // Filter appointments that are not paid
+      final unpaidAppointments = appointments
+          .where((appointment) => appointment.statusPayment == "Not Paid")
+          .toList();
+
+      // Calculate total amount
+      final total = unpaidAppointments.fold<double>(
+        0,
+        (sum, appointment) => sum + appointment.appointmentCost,
+      );
+
+      setState(() {
+        _appointments = unpaidAppointments;
+        _totalAmount = total;
+        _isLoadingAppointments = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingAppointments = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading appointments: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handlePaymentForAll() async {
     setState(() => _isLoading = true);
     try {
-      await StripeService.instance.makePayment();
+      await StripeService.instance.makePayment(amount: _totalAmount);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -49,144 +111,182 @@ class _PaymentPageState extends State<Payment> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text(
-          "Checkout",
+          "Pending Payments",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Order Summary Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Order Summary',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Subtotal',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          Text(
-                            'MYR ${_amount.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'MYR ${_amount.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+      body: Column(
+        children: [
+          // Total Amount Card
+          if (!_isLoadingAppointments && _appointments.isNotEmpty)
+            Card(
+              margin: const EdgeInsets.all(20),
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
               ),
-              const SizedBox(height: 20),
-
-              // Payment Method Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Payment Method',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      'Total Amount Due',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
                       ),
-                      SizedBox(height: 15),
-                      ListTile(
-                        leading: Icon(Icons.credit_card, color: Colors.blue),
-                        title: Text('Credit/Debit Card'),
-                        subtitle: Text('Powered by Stripe'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              // Payment Button
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handlePayment,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
                     ),
-                    elevation: 2,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                    const SizedBox(height: 10),
+                    Text(
+                      'MYR ${_totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handlePaymentForAll,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                        )
-                      : const Text(
-                          'Pay Now',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          elevation: 2,
                         ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              )
+                            : const Text(
+                                'Pay All Now',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
+            ),
+
+          // Appointment List
+          Expanded(
+            child: _isLoadingAppointments
+                ? const Center(child: CircularProgressIndicator())
+                : _appointments.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No pending payments',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: _appointments.length,
+                        itemBuilder: (context, index) {
+                          final appointment = _appointments[index];
+                          return Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Appointment Details',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 15),
+                                  _buildDetailRow(
+                                      'Date', appointment.getFormattedDate()),
+                                  _buildDetailRow(
+                                      'Time', appointment.getFormattedTime()),
+                                  _buildDetailRow('Duration',
+                                      '${appointment.duration} minutes'),
+                                  _buildDetailRow('Hospital',
+                                      appointment.registeredHospital),
+                                  _buildDetailRow('Type of Visit',
+                                      appointment.typeOfSickness),
+                                  const Divider(height: 30),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Amount',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      Text(
+                                        'MYR ${appointment.appointmentCost.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

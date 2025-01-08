@@ -7,11 +7,14 @@ class StripeService {
   StripeService._();
   static final StripeService instance = StripeService._();
 
-  Future<void> makePayment() async {
+  Future<void> makePayment({required double amount}) async {
     try {
-      // First create the payment intent and store both ID and client secret
+      // Convert the double amount to integer (cents)
+      final intAmount = (amount).round();
+
+      // Create payment intent with the dynamic amount
       Map<String, dynamic>? paymentIntentData =
-          await _createPaymentIntent(10, "MYR");
+          await _createPaymentIntent(intAmount, "MYR");
 
       if (paymentIntentData == null) {
         print('Failed to create payment intent');
@@ -34,7 +37,6 @@ class StripeService {
 
       // Present the payment sheet
       await Stripe.instance.presentPaymentSheet();
-
       print('Payment completed successfully');
     } catch (e) {
       print('Error: $e');
@@ -42,6 +44,7 @@ class StripeService {
         print('Error code: ${e.error.code}');
         print('Error message: ${e.error.message}');
       }
+      throw e; // Rethrow the error to handle it in the UI
     }
   }
 
@@ -52,12 +55,11 @@ class StripeService {
       final data = {
         'amount': _calculateAmount(amount),
         'currency': currency,
-        'automatic_payment_methods[enabled]':
-            'true', // Enable automatic payment methods
-        'description': 'Payment for services',
+        'automatic_payment_methods[enabled]': 'true',
+        'description': 'Payment for appointments',
       };
 
-      print('Creating payment intent with data: $data'); // Debug log
+      print('Creating payment intent with data: $data');
 
       final response = await dio.post(
         'https://api.stripe.com/v1/payment_intents',
@@ -66,12 +68,12 @@ class StripeService {
           headers: {
             'Authorization': 'Bearer $stripeSecretKey',
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Stripe-Version': '2023-10-16', // Use the latest API version
+            'Stripe-Version': '2023-10-16',
           },
         ),
       );
 
-      print('Payment intent response: ${response.data}'); // Debug log
+      print('Payment intent response: ${response.data}');
       return response.data;
     } catch (e) {
       if (e is DioError) {
@@ -85,6 +87,7 @@ class StripeService {
   }
 
   String _calculateAmount(int amount) {
+    // Amount should be in smallest currency unit (cents)
     final calculatedAmount = amount * 100;
     return calculatedAmount.toString();
   }
