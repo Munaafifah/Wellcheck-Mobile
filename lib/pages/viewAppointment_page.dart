@@ -3,10 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/appointment_service.dart';
 import '../models/appointment_model.dart';
 import '../pages/appointment_page.dart';
-import 'package:intl/intl.dart';
 import '../pages/editAppointment_page.dart';
-import 'dart:convert';
-// For date formatting
 
 class ViewAppointmentsPage extends StatefulWidget {
   final String userId;
@@ -192,8 +189,6 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     TextEditingController typeOfSicknessController = TextEditingController(
       text: appointment.typeOfSickness,
     );
-
-    
   }
 
   List<Appointment> _getPaginatedAppointments() {
@@ -414,16 +409,17 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
               },
             ),
             IconButton(
-  icon: const Icon(Icons.edit, color: Colors.orange),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditAppointmentPage(appointment: appointment),
-      ),
-    );
-  },
-),
+              icon: const Icon(Icons.edit, color: Colors.orange),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        EditAppointmentPage(appointment: appointment),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteAppointment(appointment.appointmentId),

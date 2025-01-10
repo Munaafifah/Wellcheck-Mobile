@@ -7,8 +7,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class EditAppointmentPage extends StatefulWidget {
   final Appointment appointment;
 
-  const EditAppointmentPage({Key? key, required this.appointment})
-      : super(key: key);
+
+  const EditAppointmentPage({super.key, required this.appointment});
 
   @override
   _EditAppointmentPageState createState() => _EditAppointmentPageState();
@@ -158,7 +158,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Color(0xFF4CAF93)),
+        prefixIcon: Icon(icon, color: const Color(0xFF4CAF93)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF4CAF93), width: 2),
