@@ -175,21 +175,7 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     }
   }
 
-  Future<void> _editAppointment(Appointment appointment) async {
-    // Create controllers for each editable field
-    TextEditingController dateController = TextEditingController(
-      text: appointment.getFormattedDate(),
-    );
-    TextEditingController timeController = TextEditingController(
-      text: appointment.getFormattedTime(),
-    );
-    TextEditingController durationController = TextEditingController(
-      text: appointment.duration,
-    );
-    TextEditingController typeOfSicknessController = TextEditingController(
-      text: appointment.typeOfSickness,
-    );
-  }
+  
 
   List<Appointment> _getPaginatedAppointments() {
     if (_filteredAppointments == null) return [];
@@ -263,43 +249,43 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
     }
 
     return Card(
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    elevation: 4,
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: ListTile(
+      title: Text(
+        "Appointment - ${appointment.typeOfSickness}",
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      child: ListTile(
-        title: Text(
-          "Appointment - ${appointment.typeOfSickness}",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text(
-                  "Status: ",
-                  style: TextStyle(fontWeight: FontWeight.bold),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text(
+                "Status: ",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                appointment.statusAppointment,
+                style: TextStyle(
+                  color: appointment.statusAppointment == "Approved"
+                      ? Colors.green
+                      : Colors.red,
+                  fontWeight: FontWeight.bold,
                 ),
-                Text(
-                  appointment.statusAppointment, // Dynamically show the status
-                  style: TextStyle(
-                    color: appointment.statusAppointment == "Approved"
-                        ? Colors.green
-                        : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text("Date: ${appointment.getFormattedDate()}"),
-            Text("Time: ${appointment.getFormattedTime()}"),
-            Text("Duration: ${appointment.duration} mins"),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text("Date: ${appointment.getFormattedDate()}"),
+          Text("Time: ${appointment.getFormattedTime()}"),
+          Text("Duration: ${appointment.duration} mins"),
+        ],
+      ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -408,14 +394,14 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
                 );
               },
             ),
+            if (appointment.statusAppointment != "Approved") ...[
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.orange),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        EditAppointmentPage(appointment: appointment),
+                    builder: (context) => EditAppointmentPage(appointment: appointment),
                   ),
                 );
               },
@@ -423,13 +409,13 @@ class _ViewAppointmentsPageState extends State<ViewAppointmentsPage> {
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _deleteAppointment(appointment.appointmentId),
-            )
+            ),
           ],
-        ),
+        ],
       ),
-    );
-  }
-
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
