@@ -267,6 +267,7 @@ class _DashboardPageState extends State<DashboardPage> {
           },
         ),
         const SizedBox(height: 10),
+        const SizedBox(height: 10),
         _buildActionButton(
           "Payments",
           Icons.credit_card,
@@ -274,7 +275,8 @@ class _DashboardPageState extends State<DashboardPage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const Payment(),
+                builder: (context) =>
+                    Payment(userId: widget.userId), // Remove the 'const'
               ),
             );
           },
