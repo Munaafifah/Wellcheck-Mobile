@@ -27,7 +27,7 @@ class StripeService {
           paymentIntentClientSecret: paymentIntentData['client_secret'],
           merchantDisplayName: "Danial Hakim",
           style: ThemeMode.system,
-          appearance: PaymentSheetAppearance(
+          appearance: const PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: Colors.blue,
             ),
@@ -44,7 +44,7 @@ class StripeService {
         print('Error code: ${e.error.code}');
         print('Error message: ${e.error.message}');
       }
-      throw e; // Rethrow the error to handle it in the UI
+      rethrow; // Rethrow the error to handle it in the UI
     }
   }
 
@@ -76,7 +76,7 @@ class StripeService {
       print('Payment intent response: ${response.data}');
       return response.data;
     } catch (e) {
-      if (e is DioError) {
+      if (e is DioException) {
         print('Error creating payment intent: ${e.response?.data}');
         print('Status code: ${e.response?.statusCode}');
       } else {

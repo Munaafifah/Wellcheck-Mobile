@@ -16,16 +16,20 @@ class AppointmentService {
     dynamic body,
   }) async {
     Uri uri = Uri.parse("$baseUrl$endpoint");
-    if (method == 'POST') {
-      return await http.post(uri, headers: headers, body: jsonEncode(body));
-    } else if (method == 'PUT') {
-      return await http.put(uri, headers: headers, body: jsonEncode(body));
-    } else if (method == 'GET') {
-      return await http.get(uri, headers: headers);
-    } else if (method == 'DELETE') {
-      return await http.delete(uri, headers: headers);
+    try {
+      if (method == 'POST') {
+        return await http.post(uri, headers: headers, body: jsonEncode(body));
+      } else if (method == 'PUT') {
+        return await http.put(uri, headers: headers, body: jsonEncode(body));
+      } else if (method == 'GET') {
+        return await http.get(uri, headers: headers);
+      } else if (method == 'DELETE') {
+        return await http.delete(uri, headers: headers);
+      }
+      throw Exception('Unsupported HTTP method: $method');
+    } catch (e) {
+      rethrow; // Propagate the exception further
     }
-    throw Exception('Unsupported HTTP method: $method');
   }
 
   // Create a new appointment
@@ -43,10 +47,13 @@ class AppointmentService {
     String statusPayment = "Not Paid", // Optional parameter
     String statusAppointment = "Not Approved", // Optional parameter
     String? insuranceProvider, // Optional parameter for insurance provider
-    String?
-        insurancePolicyNumber, // Optional parameter for insurance policy number
+    String? insurancePolicyNumber, // Optional parameter for insurance policy number
     String? preferredLanguage, // Optional parameter for preferred language
   }) async {
+    // Format the appointment date to 'yyyy-MM-dd' format
+    final String formattedDate = DateFormat('yyyy-MM-dd').format(appointmentDate);
+
+    // Format the appointment time to 'HH:mm'
     final String formattedTime =
         '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
 
@@ -55,29 +62,34 @@ class AppointmentService {
       throw Exception("Type of sickness cannot be empty.");
     }
 
-    final response = await makeRequest('POST', '/appointments', headers: {
-      "Authorization": "Bearer $token",
-      "Content-Type": "application/json",
-    }, body: {
-      "appointmentDate": appointmentDate.toIso8601String(),
-      "appointmentTime": formattedTime,
-      "duration": duration,
-      "typeOfSickness": typeOfSickness,
-      "additionalNotes": additionalNotes,
-      "email": email,
-      "appointmentCost": appointmentCost,
-      "statusPayment": statusPayment,
-      "statusAppointment": statusAppointment,
-      "hospitalId": hospitalId,
-      "registeredHospital": registeredHospital,
-      "insuranceProvider": insuranceProvider,
-      "insurancePolicyNumber": insurancePolicyNumber,
-      "preferredLanguage": preferredLanguage,
-    });
+    // Send data to the backend
+    try {
+      final response = await makeRequest('POST', '/appointments', headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      }, body: {
+        "appointmentDate": formattedDate, // Send formatted date
+        "appointmentTime": formattedTime, // Send formatted time
+        "duration": duration,
+        "typeOfSickness": typeOfSickness,
+        "additionalNotes": additionalNotes,
+        "email": email,
+        "appointmentCost": appointmentCost,
+        "statusPayment": statusPayment,
+        "statusAppointment": statusAppointment,
+        "hospitalId": hospitalId,
+        "registeredHospital": registeredHospital,
+        "insuranceProvider": insuranceProvider,
+        "insurancePolicyNumber": insurancePolicyNumber,
+        "preferredLanguage": preferredLanguage,
+      });
 
-    // Handle response
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception("Failed to create appointment: ${response.body}");
+      // Handle response
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception("Failed to create appointment: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("An error occurred while creating the appointment: $e");
     }
   }
 
@@ -86,8 +98,7 @@ class AppointmentService {
       String token, String userId) async {
     try {
       final response = await http.get(
-        Uri.parse(
-            "$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
+        Uri.parse("$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -145,13 +156,13 @@ class AppointmentService {
     } catch (e) {
       print("Error during API call: $e"); // Add error logging
       throw Exception("Failed to update appointment: $e");
-    }}
+    }
+  }
 
   // Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
-      Uri.parse(
-          "$baseUrl/delete-appointment/$appointmentId"), // Endpoint for deleting appointment
+      Uri.parse("$baseUrl/delete-appointment/$appointmentId"), // Endpoint for deleting appointment
       headers: {
         "Authorization": "Bearer $token",
       },

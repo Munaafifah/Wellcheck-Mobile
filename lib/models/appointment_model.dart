@@ -5,20 +5,20 @@ class Appointment {
   final String appointmentId;
   final String userId;
   final String doctorId;
-  final String hospitalId; // Added hospital association
+  final String hospitalId;
   final String registeredHospital;
   final DateTime appointmentDate;
   final TimeOfDay appointmentTime;
   final String duration;
-  final String typeOfSickness; // Made optional for non-medical visits
+  final String typeOfSickness;
   final String additionalNotes;
   final String email;
   final double appointmentCost;
-  final String statusPayment; // New property for payment status
-  final String statusAppointment; // New property for appointment status
-  final String? insuranceProvider; // New: Insurance provider info
-  final String? insurancePolicyNumber; // New: Insurance policy number
-  final String? preferredLanguage; // New: Preferred language for consultation
+  final String statusPayment;
+  final String statusAppointment;
+  final String? insuranceProvider;
+  final String? insurancePolicyNumber;
+  final String? preferredLanguage;
   
   Appointment({
     required this.appointmentId,
@@ -33,8 +33,8 @@ class Appointment {
     required this.email,
     required this.appointmentCost,
     required this.registeredHospital,
-    this.statusPayment = "Not Paid", // Initialized to "not paid"
-    this.statusAppointment = "Not Approved", // Initialized to "scheduled"
+    this.statusPayment = "Not Paid",
+    this.statusAppointment = "Not Approved",
     this.insuranceProvider,
     this.insurancePolicyNumber,
     this.preferredLanguage,
@@ -46,9 +46,9 @@ class Appointment {
       "appointmentId": appointmentId,
       "userId": userId,
       "doctorId": doctorId,
-      "hospitalId": hospitalId, // Include hospitalId in JSON
-      "registeredHospital":registeredHospital,
-      "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate),
+      "hospitalId": hospitalId,
+      "registeredHospital": registeredHospital,
+      "appointmentDate": DateFormat('yyyy-MM-dd').format(appointmentDate), // Send as formatted string
       "appointmentTime":
           '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}',
       'duration': duration,
@@ -61,7 +61,6 @@ class Appointment {
       'insuranceProvider': insuranceProvider,
       'insurancePolicyNumber': insurancePolicyNumber,
       'preferredLanguage': preferredLanguage,
-      
     };
   }
 
@@ -84,15 +83,14 @@ class Appointment {
       userId: json["userId"] ?? '',
       doctorId: json["doctorId"] ?? '',
       hospitalId: json["hospitalId"] ?? '',
-      registeredHospital: json ["registeredHospital"] ?? '',
+      registeredHospital: json["registeredHospital"] ?? '',
       appointmentDate: json['appointmentDate'] != null
-          ? DateTime.tryParse(json['appointmentDate']) ?? DateTime.now()
+          ? DateFormat('yyyy-MM-dd').parse(json['appointmentDate']) // Parse correctly
           : DateTime.now(),
       appointmentTime: parsedTime,
       duration: json['duration'] ?? '0',
-      typeOfSickness: json['typeOfSickness'],
-      additionalNotes:
-          json['additionalNotes'] ?? 'No additional notes provided',
+      typeOfSickness: json['typeOfSickness'] ?? '',
+      additionalNotes: json['additionalNotes'] ?? 'No additional notes provided',
       email: json['email'] ?? 'No email provided',
       appointmentCost: (json['appointmentCost'] as num?)?.toDouble() ?? 0.0,
       statusPayment: json['statusPayment'] ?? 'Not paid',
@@ -100,7 +98,7 @@ class Appointment {
       insuranceProvider: json['insuranceProvider'],
       insurancePolicyNumber: json['insurancePolicyNumber'],
       preferredLanguage: json['preferredLanguage'],
-          );
+    );
   }
 
   // Method to format the appointment date for display purposes

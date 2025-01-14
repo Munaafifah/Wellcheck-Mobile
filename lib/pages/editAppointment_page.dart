@@ -238,14 +238,14 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                 decoration: InputDecoration(
                   labelText:
                       "Duration (minutes)", // The label text for the field
-                  labelStyle: TextStyle(
+                  labelStyle: const TextStyle(
                     color: Color(
                         0xFF4CAF93), // Match the color scheme of other fields
                     fontWeight: FontWeight.bold, // Bold for emphasis
                   ),
                   hintText:
                       "Select Duration", // Provide a hint text for empty selection
-                  hintStyle: TextStyle(
+                  hintStyle: const TextStyle(
                     color:
                         Color(0xFFB0B0B0), // Lighter gray color for hint text
                   ),
@@ -268,7 +268,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                         color: Color(0xFF4CAF93),
                         width: 2), // Match focus state border color
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                       vertical: 15,
                       horizontal: 12), // Same padding as other fields
                 ),
@@ -277,7 +277,7 @@ class _EditAppointmentPageState extends State<EditAppointmentPage> {
                     value: option,
                     child: Text(
                       option,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize:
                             16, // Match the font size with other fields for consistency
                         color: Colors
