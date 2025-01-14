@@ -23,6 +23,7 @@ class _PaymentPageState extends State<Payment> {
   List<Appointment> _appointments = [];
   bool _isLoadingAppointments = true;
   double _totalAmount = 0.0;
+  double _displayedTotalAmount = 0.0;
 
   @override
   void initState() {
@@ -42,22 +43,31 @@ class _PaymentPageState extends State<Payment> {
         widget.userId,
       );
 
-      // Filter appointments that are "Approved" and not paid
+      // Filter appointments that are "Approved"
       final unpaidAppointments = appointments
           .where((appointment) =>
               appointment.statusPayment == "Not Paid" &&
               appointment.statusAppointment == "Approved")
           .toList();
 
-      // Calculate total amount
-      final total = unpaidAppointments.fold<double>(
+      // Calculate total amount, including RM1 appointments for display only
+      final totalDisplayed = unpaidAppointments.fold<double>(
         0,
         (sum, appointment) => sum + appointment.appointmentCost,
       );
 
+      // Calculate payable amount, excluding RM1 appointments from payable total
+      final totalPayable = unpaidAppointments.fold<double>(
+        0,
+        (sum, appointment) => appointment.appointmentCost > 1
+            ? sum + appointment.appointmentCost
+            : sum,
+      );
+
       setState(() {
         _appointments = unpaidAppointments;
-        _totalAmount = total;
+        _totalAmount = totalPayable;
+        _displayedTotalAmount = totalDisplayed;
         _isLoadingAppointments = false;
       });
     } catch (e) {
@@ -165,7 +175,7 @@ class _PaymentPageState extends State<Payment> {
                 child: Column(
                   children: [
                     Text(
-                      'Total Amount Due',
+                      'Total Amount Due (Including RM1)',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -174,7 +184,7 @@ class _PaymentPageState extends State<Payment> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'MYR ${_totalAmount.toStringAsFixed(2)}',
+                      'MYR ${_displayedTotalAmount.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -263,7 +273,7 @@ class _PaymentPageState extends State<Payment> {
                                       '${appointment.duration} minutes'),
                                   _buildDetailRow('Hospital',
                                       appointment.registeredHospital),
-                                  _buildDetailRow('Type of Visit',
+                                  _buildMultiLineDetailRow('Type of Visit',
                                       appointment.typeOfSickness),
                                   const Divider(height: 30),
                                   Row(
@@ -293,7 +303,8 @@ class _PaymentPageState extends State<Payment> {
                                     width: double.infinity,
                                     height: 50,
                                     child: ElevatedButton(
-                                      onPressed: _isLoading
+                                      onPressed: _isLoading ||
+                                              appointment.appointmentCost == 1
                                           ? null
                                           : () => _handlePaymentForSingle(
                                               appointment),
@@ -306,9 +317,11 @@ class _PaymentPageState extends State<Payment> {
                                         ),
                                         elevation: 2,
                                       ),
-                                      child: const Text(
-                                        'Pay Now',
-                                        style: TextStyle(
+                                      child: Text(
+                                        appointment.appointmentCost == 1
+                                            ? 'Cannot Pay (RM1)'
+                                            : 'Pay Now',
+                                        style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -340,6 +353,32 @@ class _PaymentPageState extends State<Payment> {
               color: Colors.grey,
             ),
           ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiLineDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
