@@ -757,7 +757,7 @@ app.put("/appointments/:appointmentId/status", async (req, res) => {
 
     const result = await appointments.updateOne(
       { appointmentId }, // Ensure the field name matches your database
-      { $set: { statusPayment, statusAppointment } }
+      { $set: { statusPayment } }
     );
 
     if (result.modifiedCount === 0) {
