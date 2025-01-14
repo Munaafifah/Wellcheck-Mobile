@@ -747,6 +747,29 @@ app.put("/update-appointment/:appointmentId", async (req, res) => {
   }
 });
 
+app.put("/appointments/:appointmentId/status", async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { statusPayment, statusAppointment } = req.body;
+
+    await client.connect();
+    const appointments = client.db("Wellcheck2").collection("appointments");
+
+    const result = await appointments.updateOne(
+      { appointmentId }, // Ensure the field name matches your database
+      { $set: { statusPayment, statusAppointment } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Appointment not found" });
+    }
+
+    res.status(200).json({ message: "Appointment status updated successfully" });
+  } catch (error) {
+    console.error("Error updating appointment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 // DELETE endpoint for deleting an appointment
 app.delete('/delete-appointment/:appointmentId', async (req, res) => {
   try {

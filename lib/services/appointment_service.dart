@@ -47,11 +47,13 @@ class AppointmentService {
     String statusPayment = "Not Paid", // Optional parameter
     String statusAppointment = "Not Approved", // Optional parameter
     String? insuranceProvider, // Optional parameter for insurance provider
-    String? insurancePolicyNumber, // Optional parameter for insurance policy number
+    String?
+        insurancePolicyNumber, // Optional parameter for insurance policy number
     String? preferredLanguage, // Optional parameter for preferred language
   }) async {
     // Format the appointment date to 'yyyy-MM-dd' format
-    final String formattedDate = DateFormat('yyyy-MM-dd').format(appointmentDate);
+    final String formattedDate =
+        DateFormat('yyyy-MM-dd').format(appointmentDate);
 
     // Format the appointment time to 'HH:mm'
     final String formattedTime =
@@ -98,7 +100,8 @@ class AppointmentService {
       String token, String userId) async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
+        Uri.parse(
+            "$baseUrl/appointments/$userId"), // Endpoint for fetching appointments
         headers: {
           "Authorization": "Bearer $token",
         },
@@ -125,12 +128,14 @@ class AppointmentService {
     String typeOfSickness,
   ) async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(appointmentDate);
-    final formattedTime = '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
+    final formattedTime =
+        '${appointmentTime.hour.toString().padLeft(2, '0')}:${appointmentTime.minute.toString().padLeft(2, '0')}';
 
     print("Updating appointment with ID: $appointmentId");
     print("Date: $formattedDate");
     print("Time: $formattedTime");
-    print("Request URL: $baseUrl/update-appointment/$appointmentId"); // Add URL logging
+    print(
+        "Request URL: $baseUrl/update-appointment/$appointmentId"); // Add URL logging
 
     try {
       final response = await http.put(
@@ -147,11 +152,13 @@ class AppointmentService {
         }),
       );
 
-      print("Response status code: ${response.statusCode}"); // Add status code logging
+      print(
+          "Response status code: ${response.statusCode}"); // Add status code logging
       print("Response body: ${response.body}"); // Add response body logging
 
       if (response.statusCode != 200) {
-        throw Exception("Failed to update appointment: ${response.statusCode} - ${response.body}");
+        throw Exception(
+            "Failed to update appointment: ${response.statusCode} - ${response.body}");
       }
     } catch (e) {
       print("Error during API call: $e"); // Add error logging
@@ -162,7 +169,8 @@ class AppointmentService {
   // Delete an appointment
   Future<void> deleteAppointment(String token, String appointmentId) async {
     final response = await http.delete(
-      Uri.parse("$baseUrl/delete-appointment/$appointmentId"), // Endpoint for deleting appointment
+      Uri.parse(
+          "$baseUrl/delete-appointment/$appointmentId"), // Endpoint for deleting appointment
       headers: {
         "Authorization": "Bearer $token",
       },
@@ -170,6 +178,36 @@ class AppointmentService {
 
     if (response.statusCode != 200) {
       throw Exception("Failed to delete appointment: ${response.body}");
+    }
+  }
+
+  Future<void> updateAppointmentStatus({
+    required String token,
+    required String appointmentId,
+    required String statusPayment,
+    required String statusAppointment,
+  }) async {
+    try {
+      final response = await makeRequest(
+        'PUT',
+        '/appointments/$appointmentId/status',
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: {
+          "statusPayment": statusPayment,
+          "statusAppointment": statusAppointment,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to update appointment status: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception(
+          'An error occurred while updating appointment status: $e');
     }
   }
 }

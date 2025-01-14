@@ -119,13 +119,33 @@ class _PaymentPageState extends State<Payment> {
   Future<void> _handlePaymentForSingle(Appointment appointment) async {
     setState(() => _isLoading = true);
     try {
+      // Trigger Stripe payment
       await StripeService.instance
           .makePayment(amount: appointment.appointmentCost);
+
+      // Update appointment status in the backend
+      final token = await _storage.read(key: "auth_token");
+      if (token == null) {
+        throw Exception("Authentication token not found");
+      }
+
+      await _appointmentService.updateAppointmentStatus(
+        token: token,
+        appointmentId: appointment.appointmentId,
+        statusPayment: "Paid",
+        statusAppointment: "Paid",
+      );
+
+      setState(() {
+        // Remove the paid appointment from the list
+        _appointments
+            .removeWhere((a) => a.appointmentId == appointment.appointmentId);
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Payment successful!'),
+            content: Text('Payment successful and status updated!'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -142,9 +162,7 @@ class _PaymentPageState extends State<Payment> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
