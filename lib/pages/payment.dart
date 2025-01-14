@@ -42,9 +42,11 @@ class _PaymentPageState extends State<Payment> {
         widget.userId,
       );
 
-      // Filter appointments that are not paid
+      // Filter appointments that are "Approved" and not paid
       final unpaidAppointments = appointments
-          .where((appointment) => appointment.statusPayment == "Not Paid")
+          .where((appointment) =>
+              appointment.statusPayment == "Not Paid" &&
+              appointment.statusAppointment == "Approved")
           .toList();
 
       // Calculate total amount
@@ -77,6 +79,38 @@ class _PaymentPageState extends State<Payment> {
     setState(() => _isLoading = true);
     try {
       await StripeService.instance.makePayment(amount: _totalAmount);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment successful!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handlePaymentForSingle(Appointment appointment) async {
+    setState(() => _isLoading = true);
+    try {
+      await StripeService.instance
+          .makePayment(amount: appointment.appointmentCost);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -253,6 +287,33 @@ class _PaymentPageState extends State<Payment> {
                                         ),
                                       ),
                                     ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      onPressed: _isLoading
+                                          ? null
+                                          : () => _handlePaymentForSingle(
+                                              appointment),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        elevation: 2,
+                                      ),
+                                      child: const Text(
+                                        'Pay Now',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
