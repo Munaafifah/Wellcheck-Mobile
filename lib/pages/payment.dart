@@ -24,6 +24,7 @@ class _PaymentPageState extends State<Payment> {
   bool _isLoadingAppointments = true;
   double _totalAmount = 0.0;
   double _displayedTotalAmount = 0.0;
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.stripe;
 
   @override
   void initState() {
@@ -88,7 +89,10 @@ class _PaymentPageState extends State<Payment> {
   Future<void> _handlePaymentForAll() async {
     setState(() => _isLoading = true);
     try {
-      await StripeService.instance.makePayment(amount: _totalAmount);
+      await StripeService.instance.makePayment(
+        amount: _totalAmount,
+        method: _selectedPaymentMethod,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -119,11 +123,11 @@ class _PaymentPageState extends State<Payment> {
   Future<void> _handlePaymentForSingle(Appointment appointment) async {
     setState(() => _isLoading = true);
     try {
-      // Trigger Stripe payment
-      await StripeService.instance
-          .makePayment(amount: appointment.appointmentCost);
+      await StripeService.instance.makePayment(
+        amount: appointment.appointmentCost,
+        method: _selectedPaymentMethod,
+      );
 
-      // Update appointment status in the backend
       final token = await _storage.read(key: "auth_token");
       if (token == null) {
         throw Exception("Authentication token not found");
@@ -137,7 +141,6 @@ class _PaymentPageState extends State<Payment> {
       );
 
       setState(() {
-        // Remove the paid appointment from the list
         _appointments
             .removeWhere((a) => a.appointmentId == appointment.appointmentId);
       });
@@ -180,7 +183,6 @@ class _PaymentPageState extends State<Payment> {
       ),
       body: Column(
         children: [
-          // Total Amount Card
           if (!_isLoadingAppointments && _appointments.isNotEmpty)
             Card(
               margin: const EdgeInsets.all(20),
@@ -208,6 +210,21 @@ class _PaymentPageState extends State<Payment> {
                         fontWeight: FontWeight.bold,
                         color: Colors.green,
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    DropdownButton<PaymentMethod>(
+                      value: _selectedPaymentMethod,
+                      items: PaymentMethod.values.map((PaymentMethod method) {
+                        return DropdownMenuItem<PaymentMethod>(
+                          value: method,
+                          child: Text(method.toString().split('.').last),
+                        );
+                      }).toList(),
+                      onChanged: (PaymentMethod? newValue) {
+                        setState(() {
+                          _selectedPaymentMethod = newValue!;
+                        });
+                      },
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
