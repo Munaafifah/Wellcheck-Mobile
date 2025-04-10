@@ -23,27 +23,25 @@ app.post("/login", async (req, res) => {
     await client.connect();
     const users = client.db("Wellcheck2").collection("User");
 
-    // Find the user by _id and nested key
-    const userDoc = await users.findOne({ _id: userId });
-    if (!userDoc || !userDoc[userId]) {
+    // Find the user by _id
+    const user = await users.findOne({ _id: userId });
+    if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    const user = userDoc[userId]; // Access the nested user data
 
     // Check if the user is a patient
     if (user.role !== "PATIENT") {
       return res.status(403).json({ error: "Access restricted to patients" });
     }
 
-    // Validate the password
-    const isPasswordValid = password === user.password; // If using bcrypt, update this logic
+    // Validate the password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Invalid password" });
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ userId: user.userId }, "your_secret_key");
+    const token = jwt.sign({ userId: user._id }, "your_secret_key");
     res.json({ token });
   } catch (error) {
     console.error(error);
