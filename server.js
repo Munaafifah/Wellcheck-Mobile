@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 app.use(cors());
 const port = 5001;
 
-const uri = "mongodb+srv://admin:admin@atlascluster.htlbqbu.mongodb.net/";
+const uri = "mongodb+srv://munaafifah:munaafifah@wellcheck.t0bkb.mongodb.net/Wellcheck2?retryWrites=true&w=majority"; // Replace with your MongoDB connection string
 const client = new MongoClient(uri);
 const secretKey = "your_secret_key"; // Replace with your secure key
 
