@@ -9,6 +9,10 @@
         android:label="session"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        android:enableOnBackInvokedCallback="true"
+        android:name="io.flutter.app.FlutterApplication"
+        android:label="WellCheck"
+        android:exported="false"
         <activity
             android:name=".MainActivity"
             android:exported="true"

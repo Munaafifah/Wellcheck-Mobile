@@ -1,9 +1,10 @@
 class Config {
-  static const String baseUrl = "http://10.0.2.2:5000";
-  /*before windows emulator
+  static const String baseUrl = 'http://10.0.2.2:5001';
+}
+
+/*before windows emulator
   http://localhost:5000
   
   for mobile emulator
-  http://10.0.2.2:5000
+  http://10.0.2.2:5001
   */
-}

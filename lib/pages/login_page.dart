@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:session/config.dart';
 import '../services/login_service.dart';
-import '../models/login_model.dart';
+import '../models/login_model.dart' hide LoginRequest;
 import 'dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -19,22 +20,34 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
 
+  // Updated login function with detailed debugging
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
+      // Create the request
       final request = LoginRequest(
         userId: _userIdController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
+      print('=== LOGIN DEBUG INFO ===');
+      print('User ID: ${request.userId}');
+      print('Password length: ${request.password.length}');
+      print('Config base URL: ${Config.baseUrl}');
+      print('Full login URL: ${Config.baseUrl}/login');
+
       try {
+        print('🔄 Calling LoginService...');
         final token = await LoginService().login(request);
+
+        print('✅ Login successful! Token received: ${token != null}');
 
         if (token != null) {
           await _storage.write(key: "auth_token", value: token);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -43,10 +56,29 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         } else {
+          print('❌ Token is null');
           _showErrorDialog("Invalid credentials. Please try again.");
         }
       } catch (e) {
-        _showErrorDialog("An unexpected error occurred. Please try again.");
+        print('💥 LOGIN ERROR CAUGHT:');
+        print('Error type: ${e.runtimeType}');
+        print('Error message: $e');
+        print('Stack trace:');
+        print(StackTrace.current);
+
+        // Show more specific error message
+        String errorMessage = "An unexpected error occurred. Please try again.";
+
+        if (e.toString().contains('SocketException')) {
+          errorMessage =
+              "Cannot connect to server. Please check your internet connection.";
+        } else if (e.toString().contains('TimeoutException')) {
+          errorMessage = "Connection timeout. Please try again.";
+        } else if (e.toString().contains('FormatException')) {
+          errorMessage = "Server response error. Please try again.";
+        }
+
+        _showErrorDialog(errorMessage);
       } finally {
         setState(() {
           _isLoading = false;

@@ -34,12 +34,12 @@ dependencies:
   flutter_secure_storage: ^7.0.0 # For secure session management
   intl: ^0.19.0 # Use the latest version available
   dropdown_search: ^5.0.3
-  awesome_notifications: ^0.10.0
+  # awesome_notifications: ^0.10.0
   flutter_stripe: ^11.3.0
   dio: ^5.7.0
   uuid: ^3.0.4
   image_picker: ^0.8.5+3
-  permission_handler: ^10.0.0
+  permission_handler: ^11.3.1
   image: ^3.0.1
 
 
