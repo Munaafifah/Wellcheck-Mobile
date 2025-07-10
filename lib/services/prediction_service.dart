@@ -7,7 +7,7 @@ class PredictionService {
   //"http://127.0.0.1:8000/status/" // For website
   //"http://10.0.2.2:8000/status/"; // For emulator
   final String nodeApiUrl =
-      "http://10.0.2.2:5000/predictions2"; // Node.js MongoDB API
+      "http://10.0.2.2:5001/predictions2"; // Node.js MongoDB API
   //"http://localhost:5000/predictions2" //For website
   //"http://10.0.2.2:5000/predictions2"; // Node.js MongoDB API
 
