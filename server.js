@@ -8,26 +8,24 @@ const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 
-// Increase the payload size limit (e.g., 50MB) - MOVED TO TOP
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
 
-const port = 5001; // SINGLE PORT DECLARATION
+const port = 5001;
 
-const uri = "mongodb+srv://munaafifah:munaafifah@wellcheck.t0bkb.mongodb.net/Wellcheck2?retryWrites=true&w=majority";
+const uri = "mongodb+srv://admin:admin@atlascluster.htlbqbu.mongodb.net/Wellcheck2?retryWrites=true&w=majority";
 const secretKey = "your_secret_key";
 
-const tokenBlacklist = new Set(); // In-memory blacklist
+const tokenBlacklist = new Set();
 
-// Database connection helper
 async function getConnection() {
   const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
   await client.connect();
   return client;
 }
 
-// Middleware to check for blacklisted tokens - MOVED BEFORE ROUTES
+// Middleware to check blacklisted tokens
 app.use((req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (token && tokenBlacklist.has(token)) {
@@ -41,44 +39,33 @@ app.post("/login", async (req, res) => {
   let client;
   try {
     const { userId, password } = req.body;
-    
-    console.log("Login attempt for userId:", userId); // DEBUG LOG
+    console.log("Login attempt for userId:", userId);
 
-    // Create new connection for this request
     client = await getConnection();
     const users = client.db("Wellcheck2").collection("User");
 
-    // Find the user by _id
     const user = await users.findOne({ _id: userId });
     if (!user) {
-      console.log("User not found:", userId); // DEBUG LOG
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Check if the user is a patient
     if (user.role !== "PATIENT") {
-      console.log("Access restricted - user role:", user.role); // DEBUG LOG
       return res.status(403).json({ error: "Access restricted to patients" });
     }
 
-    // Validate the password using bcrypt
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.log("Invalid password for user:", userId); // DEBUG LOG
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    // Generate a JWT token
     const token = jwt.sign({ userId: user._id }, secretKey);
-    console.log("Login successful for user:", userId); // DEBUG LOG
+    console.log("Login successful for user:", userId);
     res.json({ token });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
@@ -87,43 +74,34 @@ app.get("/patient/:userId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
         client = await getConnection();
         const patients = client.db("Wellcheck2").collection("Patient");
 
-        // Fetch the patient document and access the nested data
+        // Flat structure — no nested key
         const patientDoc = await patients.findOne({ _id: userId });
-        if (!patientDoc || !patientDoc[userId]) {
+        if (!patientDoc) {
           return res.status(404).json({ error: "Patient not found" });
         }
 
-        const patient = patientDoc[userId]; // Access the nested patient data
-
         res.json({
-          name: patient.name,
-          address: patient.address,
-          contact: patient.contact,
-          emergencyContact: patient.emergencyContact,
-          assigned_doctor: patient.assigned_doctor,
+          name: patientDoc.name,
+          address: patientDoc.address,
+          contact: patientDoc.contact,
+          emergencyContact: patientDoc.emergencyContact,
+          assigned_doctor: patientDoc.assigned_doctor,
         });
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -137,43 +115,33 @@ app.get("/prescriptions/:userId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify the token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
         client = await getConnection();
         const patients = client.db("Wellcheck2").collection("Patient");
 
-        // Fetch the patient document
+        // Flat structure — prescription is lowercase
         const patientDoc = await patients.findOne({ _id: userId });
         if (!patientDoc) {
           return res.status(404).json({ error: "Patient not found" });
         }
 
-        // Access the nested patient data
-        const patient = patientDoc[userId];
-        if (!patient || !patient.Prescription || Object.keys(patient.Prescription).length === 0) {
+        if (!patientDoc.prescription || Object.keys(patientDoc.prescription).length === 0) {
           return res.status(404).json({ error: "No prescriptions found for this patient." });
         }
 
-        // Return all prescriptions as an array
-        const prescriptions = Object.values(patient.Prescription);
+        const prescriptions = Object.values(patientDoc.prescription);
         res.json(prescriptions);
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -187,14 +155,10 @@ app.post('/predictions2', async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         client = await getConnection();
@@ -215,50 +179,28 @@ app.post('/predictions2', async (req, res) => {
           timestamp: timestamp || new Date().toISOString(),
         };
 
-        // Find the patient by user ID
         const existingPatient = await patients.findOne({ _id: userId });
-
-        if (existingPatient) {
-          // Dynamically detect the first key (like "000", "001")
-          const patientKey = Object.keys(existingPatient).find(key => key !== '_id');
-
-          if (patientKey) {
-            const patientData = existingPatient[patientKey];
-
-            if (patientData.Prediction) {
-              // If Prediction exists, append new entry to the existing object
-              await patients.updateOne(
-                { _id: userId },
-                { $set: { [`${patientKey}.Prediction.${predictionID}`]: newPrediction } }
-              );
-            } else {
-              // If Prediction doesn't exist, create a new Prediction object
-              await patients.updateOne(
-                { _id: userId },
-                { $set: { [`${patientKey}.Prediction`]: { [predictionID]: newPrediction } } }
-              );
-            }
-
-            // Return updated patient data
-            const updatedPatient = await patients.findOne({ _id: userId });
-            res.status(200).json({
-              message: "Prediction saved successfully",
-              predictionID: predictionID,
-              patient: updatedPatient,
-            });
-          } else {
-            res.status(404).json({ error: "No valid nested document found for patient" });
-          }
-        } else {
-          res.status(404).json({ error: "Patient not found" });
+        if (!existingPatient) {
+          return res.status(404).json({ error: "Patient not found" });
         }
+
+        // Flat structure — prediction is lowercase
+        await patients.updateOne(
+          { _id: userId },
+          { $set: { [`prediction.${predictionID}`]: newPrediction } }
+        );
+
+        const updatedPatient = await patients.findOne({ _id: userId });
+        res.status(200).json({
+          message: "Prediction saved successfully",
+          predictionID,
+          patient: updatedPatient,
+        });
       } catch (error) {
         console.error("Error saving prediction:", error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -272,39 +214,29 @@ app.get("/healthstatus/:userId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
         client = await getConnection();
-        const patients = client.db("Wellcheck2").collection("Patient");
 
-        const patientDoc = await patients.findOne({ _id: userId });
-        if (!patientDoc || !patientDoc[userId]) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
+        // HealthStatus is a separate collection in the new DB
+        const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
+        const healthStatusList = await healthStatusCollection.find({ userId }).toArray();
 
-        const patient = patientDoc[userId];
-        if (!patient.HealthStatus || Object.keys(patient.HealthStatus).length === 0) {
+        if (!healthStatusList || healthStatusList.length === 0) {
           return res.status(404).json({ error: "No healthstatus found for this patient" });
         }
 
-        const healthstatusList = Object.values(patient.HealthStatus);
-        res.json(healthstatusList);
+        res.json(healthStatusList);
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -318,49 +250,28 @@ app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
-        const userId = req.params.userId;
-        const healthStatusId = req.params.healthStatusId;
-
+        const { userId, healthStatusId } = req.params;
         client = await getConnection();
-        const patients = client.db("Wellcheck2").collection("Patient");
+        const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
 
-        const patientDoc = await patients.findOne({ _id: userId });
-        if (!patientDoc || !patientDoc[userId]) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
+        const result = await healthStatusCollection.deleteOne({ userId, healthStatusId });
 
-        const patient = patientDoc[userId];
-        if (!patient.HealthStatus || !patient.HealthStatus[healthStatusId]) {
+        if (result.deletedCount === 0) {
           return res.status(404).json({ error: "Health status entry not found" });
         }
-
-        // Remove the health status entry from the HealthStatus object
-        delete patient.HealthStatus[healthStatusId];
-
-        // Update the patient document with the modified HealthStatus
-        await patients.updateOne(
-          { _id: userId },
-          { $set: { [userId]: patient } }
-        );
 
         res.json({ message: "Health status entry deleted" });
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -374,40 +285,30 @@ app.post("/add-symptom", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify the token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const { symptomDescription } = req.body;
         const userId = decoded.userId;
 
-        // Fetch patient details
         client = await getConnection();
         const patients = client.db("Wellcheck2").collection("Patient");
-        const patient = await patients.findOne({ _id: userId });
 
+        // Flat structure — assigned_doctor at top level
+        const patient = await patients.findOne({ _id: userId });
         if (!patient) {
           return res.status(404).json({ error: "Patient not found" });
         }
 
-        // Access the assigned_doctor field
-        const doctorId = patient[userId]?.assigned_doctor;
-
+        const doctorId = patient.assigned_doctor;
         if (!doctorId) {
           return res.status(404).json({ error: "Assigned doctor not found" });
         }
 
-        // Generate unique symptomId
         const symptomId = uuidv4();
-
-        // Insert symptom into symptoms collection
         const symptoms = client.db("Wellcheck2").collection("Symptom");
         const newSymptom = {
           symptomId,
@@ -423,9 +324,7 @@ app.post("/add-symptom", async (req, res) => {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -438,32 +337,22 @@ app.get("/symptoms/:userId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify the token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
-
-        // Fetch symptoms for the user
         client = await getConnection();
         const symptoms = client.db("Wellcheck2").collection("Symptom");
         const userSymptoms = await symptoms.find({ userId }).toArray();
-
         res.json(userSymptoms);
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -476,19 +365,13 @@ app.put("/update-symptom", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const { symptomId, symptomDescription } = req.body;
-
-        // Update the symptom
         client = await getConnection();
         const symptoms = client.db("Wellcheck2").collection("Symptom");
         const result = await symptoms.updateOne(
@@ -505,9 +388,7 @@ app.put("/update-symptom", async (req, res) => {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -520,19 +401,13 @@ app.delete("/delete-symptom/:symptomId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const symptomId = req.params.symptomId;
-
-        // Delete the symptom
         client = await getConnection();
         const symptoms = client.db("Wellcheck2").collection("Symptom");
         const result = await symptoms.deleteOne({ symptomId });
@@ -546,9 +421,7 @@ app.delete("/delete-symptom/:symptomId", async (req, res) => {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -563,15 +436,35 @@ app.get("/sickness", async (req, res) => {
     client = await getConnection();
     const sicknessCollection = client.db("Wellcheck2").collection("sickness");
     const sicknesses = await sicknessCollection.find().toArray();
-
     res.json(sicknesses);
   } catch (dbError) {
     console.error("Database Error:", dbError);
     res.status(500).json({ error: "Failed to fetch sickness records" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
+  }
+});
+
+// Get medicines endpoint
+app.get("/medicines", async (req, res) => {
+  let client;
+  try {
+    client = await getConnection();
+    const medicineCollection = client.db("Wellcheck2").collection("Medicine");
+    const medicineDocs = await medicineCollection.find().toArray();
+
+    // Flatten the Firebase-style nested structure
+    const medicines = medicineDocs.map(doc => {
+      const key = Object.keys(doc).find(k => k !== '_id');
+      return doc[key];
+    });
+
+    res.json(medicines);
+  } catch (error) {
+    console.error("Error fetching medicines:", error.message);
+    res.status(500).json({ error: "Failed to fetch medicines" });
+  } finally {
+    if (client) await client.close();
   }
 });
 
@@ -592,9 +485,7 @@ app.get("/hospitals", async (req, res) => {
     console.error("Error fetching hospitals:", error.message);
     res.status(500).json({ error: "Failed to fetch hospitals. Details: " + error.message });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
@@ -604,25 +495,19 @@ app.get("/hospitals/:hospitalId", async (req, res) => {
   try {
     client = await getConnection();
     const hospitalsCollection = client.db("Wellcheck2").collection("hospitals");
-
     const hospitalId = req.params.hospitalId;
-
-    // Fetch the hospital by ID, converting the id to ObjectId
     const hospital = await hospitalsCollection.findOne({ _id: new ObjectId(hospitalId) });
 
     if (!hospital) {
       return res.status(404).json({ error: "Hospital not found" });
     }
 
-    // Return the hospital's dynamic form fields
     res.json(hospital.form_fields);
   } catch (error) {
     console.error("Error fetching hospital fields:", error);
     res.status(500).json({ error: "Failed to fetch hospital fields" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
@@ -631,32 +516,22 @@ app.get("/appointments/:userId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify the token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
-
-        // Fetch appointments for the user
         client = await getConnection();
         const appointments = client.db("Wellcheck2").collection("appointments");
         const userAppointments = await appointments.find({ userId }).toArray();
-
         res.json(userAppointments);
       } catch (dbError) {
         console.error("Database Error:", dbError);
         res.status(500).json({ error: "Failed to fetch appointments" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -669,13 +544,9 @@ app.get("/appointments/:userId", async (req, res) => {
 app.post("/appointments", async (req, res) => {
   let client;
   try {
-    // Extract token from Authorization header
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify JWT
     let decoded;
     try {
       decoded = jwt.verify(token, secretKey);
@@ -683,7 +554,6 @@ app.post("/appointments", async (req, res) => {
       return res.status(401).json({ error: "Invalid token" });
     }
 
-    // Extract data from request body
     const {
       appointmentDate,
       appointmentTime,
@@ -696,60 +566,41 @@ app.post("/appointments", async (req, res) => {
       hospitalId,
       registeredHospital,
       appointmentCost,
+      consultationCost = 0.00,
+      equipmentCost = 0.00,
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
     } = req.body;
 
     const userId = decoded.userId;
 
-    // Validate required fields
-    if (
-      !appointmentDate ||
-      !appointmentTime ||
-      !duration ||
-      !typeOfSickness ||
-      !email ||
-      !statusAppointment ||
-      appointmentCost == null
-    ) {
+    if (!appointmentDate || !appointmentTime || !duration || !typeOfSickness || !email || appointmentCost == null) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
     try {
       client = await getConnection();
-      console.log("Connected to MongoDB");
-
-      // Fetch patient details
       const patients = client.db("Wellcheck2").collection("Patient");
-      const patient = await patients.findOne({ _id: userId });
 
+      // Flat structure — assigned_doctor at top level
+      const patient = await patients.findOne({ _id: userId });
       if (!patient) {
         return res.status(404).json({ error: "Patient not found" });
       }
 
-      const appointmentId = uuidv4();
-      // Access the assigned_doctor field
-      const doctorId = patient[userId]?.assigned_doctor;
-
+      const doctorId = patient.assigned_doctor;
       if (!doctorId) {
         return res.status(404).json({ error: "Assigned doctor not found" });
       }
 
-      // Check for duplicate appointment
+      const appointmentId = uuidv4();
       const appointments = client.db("Wellcheck2").collection("appointments");
-      const existingAppointment = await appointments.findOne({
-        userId,
-        appointmentDate,
-        appointmentTime,
-      });
 
+      const existingAppointment = await appointments.findOne({ userId, appointmentDate, appointmentTime });
       if (existingAppointment) {
-        return res.status(400).json({
-          error: "Appointment already exists for the selected date and time",
-        });
+        return res.status(400).json({ error: "Appointment already exists for the selected date and time" });
       }
 
-      // Create a new appointment object
       const newAppointment = {
         appointmentId,
         userId,
@@ -765,18 +616,16 @@ app.post("/appointments", async (req, res) => {
         insurancePolicyNumber: insurancePolicyNumber || null,
         email,
         appointmentCost,
+        consultationCost,
+        equipmentCost,
         statusPayment,
         statusAppointment,
         timestamp: new Date(appointmentDate),
       };
 
-      // Insert appointment into the database
       const result = await appointments.insertOne(newAppointment);
       if (result.acknowledged) {
-        res.status(201).json({
-          message: "Appointment created successfully",
-          appointment: newAppointment,
-        });
+        res.status(201).json({ message: "Appointment created successfully", appointment: newAppointment });
       } else {
         res.status(500).json({ error: "Failed to create appointment" });
       }
@@ -784,10 +633,7 @@ app.post("/appointments", async (req, res) => {
       console.error("MongoDB Error:", mongoError.message);
       res.status(500).json({ error: "Database error occurred", details: mongoError.message });
     } finally {
-      if (client) {
-        await client.close();
-      }
-      console.log("Disconnected from MongoDB");
+      if (client) await client.close();
     }
   } catch (error) {
     console.error("Error:", error);
@@ -798,41 +644,26 @@ app.post("/appointments", async (req, res) => {
 // Update appointment endpoint
 app.put("/update-appointment/:appointmentId", async (req, res) => {
   let client;
-  console.log("Received request to update appointment with ID:", req.params.appointmentId);
-
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     const { appointmentDate, appointmentTime, duration, typeOfSickness } = req.body;
     const { appointmentId } = req.params;
 
-    // Validate required fields
     if (!appointmentDate || !appointmentTime || !duration || !typeOfSickness) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Combine date and time
     const fullAppointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00.000Z`);
 
     try {
       client = await getConnection();
-      console.log("Connected to MongoDB");
-
       const appointments = client.db("Wellcheck2").collection("appointments");
 
       const result = await appointments.updateOne(
         { appointmentId },
-        {
-          $set: {
-            appointmentDate: fullAppointmentDateTime,
-            appointmentTime,
-            duration,
-            typeOfSickness,
-          },
-        }
+        { $set: { appointmentDate: fullAppointmentDateTime, appointmentTime, duration, typeOfSickness } }
       );
 
       if (result.modifiedCount === 0) {
@@ -841,9 +672,7 @@ app.put("/update-appointment/:appointmentId", async (req, res) => {
 
       res.status(200).json({ message: "Appointment updated successfully", appointmentId });
     } finally {
-      if (client) {
-        await client.close();
-      }
+      if (client) await client.close();
     }
   } catch (error) {
     console.error("Error updating appointment:", error);
@@ -863,7 +692,7 @@ app.put("/appointments/:appointmentId/status", async (req, res) => {
 
     const result = await appointments.updateOne(
       { appointmentId },
-      { $set: { statusPayment } }
+      { $set: { statusPayment, statusAppointment } }
     );
 
     if (result.modifiedCount === 0) {
@@ -875,9 +704,7 @@ app.put("/appointments/:appointmentId/status", async (req, res) => {
     console.error("Error updating appointment:", error);
     res.status(500).json({ error: "Internal server error" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
@@ -886,21 +713,15 @@ app.delete('/delete-appointment/:appointmentId', async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify JWT token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const appointmentId = req.params.appointmentId;
         client = await getConnection();
         const appointments = client.db("Wellcheck2").collection("appointments");
-
         const result = await appointments.deleteOne({ appointmentId });
 
         if (result.deletedCount === 0) {
@@ -912,9 +733,7 @@ app.delete('/delete-appointment/:appointmentId', async (req, res) => {
         console.error('Error deleting appointment:', error);
         res.status(500).json({ message: 'Server error' });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -928,15 +747,10 @@ app.put("/patient/:userId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
@@ -945,36 +759,14 @@ app.put("/patient/:userId", async (req, res) => {
         client = await getConnection();
         const patients = client.db("Wellcheck2").collection("Patient");
 
-        // Get the existing patient data
-        const existingPatient = await patients.findOne({ _id: userId });
-
-        if (!existingPatient) {
-          return res.status(404).json({ error: "Patient not found" });
-        }
-
-        // Prepare update object by adding only the fields present in the update request
+        // Flat structure — update fields directly
         const updateData = {};
+        if (updates.address) updateData.address = updates.address;
+        if (updates.contact) updateData.contact = updates.contact;
+        if (updates.emergencyContact) updateData.emergencyContact = updates.emergencyContact;
+        if (updates.name) updateData.name = updates.name;
 
-        // Update top-level fields if provided in the request
-        if (updates.address) updateData[`${userId}.address`] = updates.address;
-        if (updates.contact) updateData[`${userId}.contact`] = updates.contact;
-        if (updates.emergencyContact) updateData[`${userId}.emergencyContact`] = updates.emergencyContact;
-        if (updates.name) updateData[`${userId}.name`] = updates.name;
-
-        // Optionally, you can update HealthStatus or Prescription fields if provided
-        if (updates.HealthStatus) {
-          updateData[`${userId}.HealthStatus`] = updates.HealthStatus;
-        }
-
-        if (updates.Prescription) {
-          updateData[`${userId}.Prescription`] = updates.Prescription;
-        }
-
-        // Perform the update operation
-        const result = await patients.updateOne(
-          { _id: userId },
-          { $set: updateData }
-        );
+        const result = await patients.updateOne({ _id: userId }, { $set: updateData });
 
         if (result.matchedCount === 0) {
           return res.status(404).json({ error: "Patient not found" });
@@ -985,9 +777,7 @@ app.put("/patient/:userId", async (req, res) => {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -1000,35 +790,22 @@ app.put("/patient/:userId", async (req, res) => {
 app.put("/user/:userId", async (req, res) => {
   let client;
   try {
-    // Token validation
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
-        // Get database connection
         client = await getConnection();
         const userId = req.params.userId;
         const updates = req.body;
-
         const userCollection = client.db("Wellcheck2").collection("User");
 
-        // Create update object for changed fields
         const updateFields = {};
-        Object.keys(updates).forEach(key => {
-          updateFields[key] = updates[key];
-        });
+        Object.keys(updates).forEach(key => { updateFields[key] = updates[key]; });
 
-        const result = await userCollection.updateOne(
-          { _id: userId },
-          { $set: updateFields }
-        );
+        const result = await userCollection.updateOne({ _id: userId }, { $set: updateFields });
 
         if (result.modifiedCount === 0) {
           return res.status(404).json({ error: "User not found" });
@@ -1039,9 +816,7 @@ app.put("/user/:userId", async (req, res) => {
         console.error('Error:', error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -1055,32 +830,23 @@ app.put("/user/:userId/password", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    // Verify token
     jwt.verify(token, secretKey, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
+      if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
         const userId = req.params.userId;
         const { newPassword } = req.body;
 
-        // Check if newPassword is provided
         if (!newPassword) {
           return res.status(400).json({ error: "New password is required" });
         }
 
         client = await getConnection();
         const users = client.db("Wellcheck2").collection("User");
-
-        // Hash the new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update the password field directly
         const updateResult = await users.updateOne(
           { _id: userId },
           { $set: { password: hashedPassword } }
@@ -1090,18 +856,12 @@ app.put("/user/:userId/password", async (req, res) => {
           return res.status(404).json({ error: "User not found" });
         }
 
-        if (updateResult.modifiedCount === 0) {
-          return res.status(400).json({ error: "Password update failed" });
-        }
-
         res.json({ message: "Password updated successfully" });
       } catch (error) {
         console.error("Error:", error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
-        if (client) {
-          await client.close();
-        }
+        if (client) await client.close();
       }
     });
   } catch (error) {
@@ -1115,7 +875,7 @@ app.put("/user/uploadImage/:userId", async (req, res) => {
   let client;
   try {
     const userId = req.params.userId;
-    const { profilepic } = req.body;  // Base64 image data
+    const { profilepic } = req.body;
 
     if (!profilepic) {
       return res.status(400).json({ error: "Profile picture is required" });
@@ -1123,11 +883,7 @@ app.put("/user/uploadImage/:userId", async (req, res) => {
 
     client = await getConnection();
     const users = client.db("Wellcheck2").collection("User");
-
-    const result = await users.updateOne(
-      { _id: userId },
-      { $set: { profilepic: profilepic } }
-    );
+    const result = await users.updateOne({ _id: userId }, { $set: { profilepic } });
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -1138,9 +894,7 @@ app.put("/user/uploadImage/:userId", async (req, res) => {
     console.error("Upload Error:", error);
     res.status(500).json({ error: "Internal server error" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
@@ -1149,28 +903,20 @@ app.get("/user/profileImage/:userId", async (req, res) => {
   let client;
   try {
     const userId = req.params.userId;
-
-    // Connect to the database
     client = await getConnection();
     const users = client.db("Wellcheck2").collection("User");
-
-    // Fetch user by _id
     const userDoc = await users.findOne({ _id: userId });
 
     if (!userDoc || !userDoc.profilepic) {
       return res.status(404).json({ error: "Profile image not found" });
     }
 
-    // Return the Base64 image
-    const profileImage = userDoc.profilepic;
-    res.json({ profilepic: profileImage });
+    res.json({ profilepic: userDoc.profilepic });
   } catch (error) {
     console.error("Error fetching profile image:", error);
     res.status(500).json({ error: "Internal server error" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
@@ -1184,18 +930,14 @@ app.post("/verify-password", async (req, res) => {
       return res.status(400).json({ error: "User ID and password are required" });
     }
 
-    // Connect to the database
     client = await getConnection();
     const users = client.db("Wellcheck2").collection("User");
-
-    // Fetch the user document
     const userDoc = await users.findOne({ _id: userId });
 
     if (!userDoc) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Compare passwords using bcrypt
     const isPasswordValid = await bcrypt.compare(password, userDoc.password);
     if (isPasswordValid) {
       return res.status(200).json({ message: "Password verified successfully" });
@@ -1206,21 +948,16 @@ app.post("/verify-password", async (req, res) => {
     console.error("Error verifying password:", error);
     res.status(500).json({ error: "Internal server error" });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
 // Logout endpoint
 app.post("/logout", (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ error: "No token provided" });
-  }
+  if (!token) return res.status(401).json({ error: "No token provided" });
 
   try {
-    // Add token to blacklist
     tokenBlacklist.add(token);
     res.json({ message: "Logged out successfully" });
   } catch (error) {
@@ -1228,11 +965,11 @@ app.post("/logout", (req, res) => {
   }
 });
 
-// Add health check endpoint
+// Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "Server is running", 
-    port: port,
+  res.json({
+    status: "Server is running",
+    port,
     database: "Wellcheck2",
     timestamp: new Date().toISOString()
   });
@@ -1244,30 +981,17 @@ app.get("/test-db", async (req, res) => {
   try {
     client = await getConnection();
     const db = client.db("Wellcheck2");
-    
-    // Test collections
     const collections = await db.listCollections().toArray();
     const collectionNames = collections.map(col => col.name);
-    
-    res.json({ 
-      status: "Database connected successfully",
-      database: "Wellcheck2",
-      collections: collectionNames
-    });
+    res.json({ status: "Database connected successfully", database: "Wellcheck2", collections: collectionNames });
   } catch (error) {
     console.error("Database connection error:", error);
-    res.status(500).json({ 
-      error: "Database connection failed", 
-      details: error.message 
-    });
+    res.status(500).json({ error: "Database connection failed", details: error.message });
   } finally {
-    if (client) {
-      await client.close();
-    }
+    if (client) await client.close();
   }
 });
 
-// Add this shutdown handler
 process.on('SIGINT', async () => {
   console.log('Shutting down server...');
   process.exit();
