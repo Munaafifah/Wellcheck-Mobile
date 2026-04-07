@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:session/pages/login_page.dart';
-import 'package:session/pages/payment.dart';
+import '../pages/payment.dart';
 import '../services/dashboard_service.dart';
 import '../models/dashboard_model.dart';
 import 'prescription_page.dart';

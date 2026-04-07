@@ -42,3 +42,22 @@ dependencies {
 flutter {
     source = "../.."
 }
+
+// Copy APK to Flutter expected location after build (workaround for space in username path)
+android.applicationVariants.configureEach { variant ->
+    def variantName = variant.name.capitalize()
+    tasks.named("assemble${variantName}").configure {
+        doLast {
+            def flutterApkDir = new File(rootProject.rootDir.parentFile, "build/app/outputs/flutter-apk")
+            flutterApkDir.mkdirs()
+            def srcDir = new File("${rootProject.buildDir}/app/outputs/flutter-apk")
+            if (srcDir.exists()) {
+                copy {
+                    from srcDir
+                    into flutterApkDir
+                    include "*.apk"
+                }
+            }
+        }
+    }
+}

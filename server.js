@@ -742,6 +742,121 @@ app.delete('/delete-appointment/:appointmentId', async (req, res) => {
   }
 });
 
+// Billing endpoint - aggregates drug, consultation, equipment costs from appointments
+app.get("/api/billing/:userId", async (req, res) => {
+  let client;
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) return res.status(401).json({ error: "Invalid token" });
+
+      try {
+        const userId = req.params.userId;
+        console.log("BILLING: looking up userId =", userId); // ✅ debug
+
+        client = await getConnection();
+        const appointments = client.db("Wellcheck2").collection("appointments");
+
+        const userAppointments = await appointments.find({
+          userId,
+          statusAppointment: "Approved", // ✅ only approved
+        }).toArray();
+
+        console.log("BILLING: found appointments =", userAppointments.length); // ✅ debug
+
+        if (!userAppointments.length) {
+          return res.status(404).json({ error: "No appointments found for this user" });
+        }
+
+        const billings = userAppointments.map((appt) => {
+          const label = appt.typeOfSickness || "General";
+          const date = appt.appointmentDate
+            ? new Date(appt.appointmentDate).toLocaleDateString("en-MY")
+            : "";
+
+          const drugCosts = [];
+          const consultationCosts = [];
+          const equipmentCosts = [];
+
+          if (appt.drugCost && appt.drugCost > 0) {
+            drugCosts.push({ name: `Drug - ${label} (${date})`, amount: appt.drugCost });
+          }
+          if (appt.consultationCost && appt.consultationCost > 0) {
+            consultationCosts.push({ name: `Consultation - ${label} (${date})`, amount: appt.consultationCost });
+          }
+          if (appt.equipmentCost && appt.equipmentCost > 0) {
+            equipmentCosts.push({ name: `Equipment - ${label} (${date})`, amount: appt.equipmentCost });
+          }
+
+          const totalCost = [...drugCosts, ...consultationCosts, ...equipmentCosts]
+            .reduce((sum, item) => sum + item.amount, 0);
+
+          return {
+            billingId: appt.appointmentId,
+            userId,
+            drugCosts,
+            consultationCosts,
+            equipmentCosts,
+            totalCost,
+            statusPayment: appt.statusPayment || "Not Paid",
+            timestamp: appt.timestamp || new Date().toISOString(),
+            appointmentDate: appt.appointmentDate ?? null,
+            appointmentTime: appt.appointmentTime ?? null,
+            duration: appt.duration ?? null,
+            registeredHospital: appt.registeredHospital ?? null,
+            typeOfSickness: appt.typeOfSickness ?? null,
+          };
+        });
+
+        res.json(billings);
+      } catch (error) {
+        console.error("Billing error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      } finally {
+        if (client) await client.close();
+      }
+    });
+  } catch (error) {
+    console.error("Billing error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Mark all appointments as paid
+app.post("/api/billing/pay", async (req, res) => {
+  let client;
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) return res.status(401).json({ error: "Invalid token" });
+
+      try {
+        const { userId } = req.body;
+        client = await getConnection();
+        const appointments = client.db("Wellcheck2").collection("appointments");
+
+        await appointments.updateMany(
+          { userId, statusPayment: "Not Paid" },
+          { $set: { statusPayment: "Paid", statusAppointment: "Paid" } }
+        );
+
+        res.json({ message: "All appointments marked as paid" });
+      } catch (error) {
+        console.error("Pay billing error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      } finally {
+        if (client) await client.close();
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Update patient details endpoint
 app.put("/patient/:userId", async (req, res) => {
   let client;
