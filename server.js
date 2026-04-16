@@ -776,29 +776,28 @@ app.get("/api/billing/:userId", async (req, res) => {
             ? new Date(appt.appointmentDate).toLocaleDateString("en-MY")
             : "";
 
+          // Drug cost stays separate — comes from prescription, not clinic assistant
           const drugCosts = [];
-          const consultationCosts = [];
-          const equipmentCosts = [];
-
           if (appt.drugCost && appt.drugCost > 0) {
             drugCosts.push({ name: `Drug - ${label} (${date})`, amount: appt.drugCost });
           }
-          if (appt.consultationCost && appt.consultationCost > 0) {
-            consultationCosts.push({ name: `Consultation - ${label} (${date})`, amount: appt.consultationCost });
-          }
-          if (appt.equipmentCost && appt.equipmentCost > 0) {
-            equipmentCosts.push({ name: `Equipment - ${label} (${date})`, amount: appt.equipmentCost });
-          }
 
-          const totalCost = [...drugCosts, ...consultationCosts, ...equipmentCosts]
-            .reduce((sum, item) => sum + item.amount, 0);
+          // Dynamic cost items from clinic assistant
+          const costItems = (appt.costItems || []).map(item => ({
+            name: item.label || "Charge",
+            amount: typeof item.amount === "number" ? item.amount : parseFloat(item.amount) || 0,
+          }));
+
+          const totalCost = [
+            ...drugCosts,
+            ...costItems,
+          ].reduce((sum, item) => sum + item.amount, 0);
 
           return {
             billingId: appt.appointmentId,
             userId,
             drugCosts,
-            consultationCosts,
-            equipmentCosts,
+            costItems,
             totalCost,
             statusPayment: appt.statusPayment || "Not Paid",
             timestamp: appt.timestamp || new Date().toISOString(),

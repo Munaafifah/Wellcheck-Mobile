@@ -255,30 +255,42 @@ class _PaymentPageState extends State<Payment> {
                         color: Colors.grey,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
-                _buildCostRow(
-                  icon: Icons.medication,
-                  iconColor: const Color(0xFF185FA5),
-                  iconBg: const Color(0xFFE6F1FB),
-                  label: "Drug cost",
-                  amount: billing.drugCosts.fold(0.0, (s, c) => s + c.amount),
-                ),
-                _buildCostRow(
-                  icon: Icons.monitor_heart,
-                  iconColor: const Color(0xFF0F6E56),
-                  iconBg: const Color(0xFFE1F5EE),
-                  label: "Consultation cost",
-                  amount: billing.consultationCosts
-                      .fold(0.0, (s, c) => s + c.amount),
-                ),
-                _buildCostRow(
-                  icon: Icons.medical_services,
-                  iconColor: const Color(0xFF534AB7),
-                  iconBg: const Color(0xFFEEEDFE),
-                  label: "Equipment cost",
-                  amount:
-                      billing.equipmentCosts.fold(0.0, (s, c) => s + c.amount),
-                  showDivider: false,
-                ),
+
+                // Drug cost — from prescription, always shown if present
+                if (billing.drugCosts.isNotEmpty)
+                  _buildCostRow(
+                    icon: Icons.medication,
+                    iconColor: const Color(0xFF185FA5),
+                    iconBg: const Color(0xFFE6F1FB),
+                    label: "Drug cost",
+                    amount: billing.drugCosts.fold(0.0, (s, c) => s + c.amount),
+                    showDivider: billing.costItems.isNotEmpty,
+                  ),
+
+                // Dynamic cost items from clinic assistant
+                ...billing.costItems.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final isLast = index == billing.costItems.length - 1;
+                  return _buildCostRow(
+                    icon: Icons.receipt_long,
+                    iconColor: const Color(0xFF0F6E56),
+                    iconBg: const Color(0xFFE1F5EE),
+                    label: item.name,
+                    amount: item.amount,
+                    showDivider: !isLast,
+                  );
+                }),
+
+                // Fallback if nothing at all
+                if (billing.drugCosts.isEmpty && billing.costItems.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      "No charges recorded yet.",
+                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                  ),
               ],
             ),
           ),
