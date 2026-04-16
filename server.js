@@ -164,7 +164,7 @@ app.post('/predictions2', async (req, res) => {
         client = await getConnection();
         const patients = client.db("Wellcheck2").collection("Patient");
         const userId = decoded.userId;
-        const { diagnosisList, probabilityList, symptomsList, timestamp } = req.body;
+        const { diagnosisList, probabilityList, symptomsList, timestamp, approved, rejected } = req.body;
 
         if (!diagnosisList || !probabilityList || !symptomsList) {
           return res.status(400).json({ error: "Missing required fields" });
@@ -172,11 +172,13 @@ app.post('/predictions2', async (req, res) => {
 
         const predictionID = uuidv4();
         const newPrediction = {
-          diagnosisList,
-          probabilityList,
-          symptomsList,
-          predictionID,
-          timestamp: timestamp || new Date().toISOString(),
+          predictionID,                                           // 1st
+          symptomsList,                                           // 2nd
+          diagnosisList,                                          // 3rd
+          probabilityList,                                        // 4th
+          timestamp: timestamp ? new Date(timestamp) : new Date(), // 5th - Date object
+          approved: approved ?? false,                            // 6th
+          rejected: rejected ?? false,                            // 7th
         };
 
         const existingPatient = await patients.findOne({ _id: userId });
@@ -184,7 +186,6 @@ app.post('/predictions2', async (req, res) => {
           return res.status(404).json({ error: "Patient not found" });
         }
 
-        // Flat structure — prediction is lowercase
         await patients.updateOne(
           { _id: userId },
           { $set: { [`prediction.${predictionID}`]: newPrediction } }
@@ -245,8 +246,8 @@ app.get("/healthstatus/:userId", async (req, res) => {
   }
 });
 
-// Delete health status endpoint
-app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
+// Add health status endpoint (called from mobile after prediction)
+app.post("/add-healthstatus", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -256,19 +257,35 @@ app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
       if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
-        const { userId, healthStatusId } = req.params;
+        const userId = decoded.userId;
+        const { additionalNotes, diagnosisList } = req.body; // ← add diagnosisList
+
         client = await getConnection();
+        const patients = client.db("Wellcheck2").collection("Patient");
         const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
 
-        const result = await healthStatusCollection.deleteOne({ userId, healthStatusId });
+        const patient = await patients.findOne({ _id: userId });
+        if (!patient) return res.status(404).json({ error: "Patient not found" });
 
-        if (result.deletedCount === 0) {
-          return res.status(404).json({ error: "Health status entry not found" });
-        }
+        const doctorId = patient.assigned_doctor || "";
 
-        res.json({ message: "Health status entry deleted" });
+        const newHealthStatus = {
+          healthStatusId: uuidv4(), // ← use existing uuidv4, not require()
+          userId,
+          doctorId,
+          additionalNotes: additionalNotes || "",
+          diagnosisList: diagnosisList || [], // ← add this
+          timestamp: new Date(),
+        };
+
+        await healthStatusCollection.insertOne(newHealthStatus);
+
+        res.status(200).json({
+          message: "Health status saved successfully",
+          healthStatus: newHealthStatus,
+        });
       } catch (error) {
-        console.error(error);
+        console.error("Error saving health status:", error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
         if (client) await client.close();

@@ -4,6 +4,8 @@ class PredictionModel {
   List<double> probabilityList;
   List<String> symptomsList;
   final DateTime timestamp;
+  final bool approved;
+  final bool rejected;
 
   PredictionModel({
     required this.predictionID,
@@ -11,30 +13,41 @@ class PredictionModel {
     required this.probabilityList,
     required this.symptomsList,
     required this.timestamp,
+    this.approved = false,
+    this.rejected = false,
   });
 
-  // Factory constructor to create an instance from JSON
   factory PredictionModel.fromJson(Map<String, dynamic> json) {
     return PredictionModel(
-      predictionID: json["predictionID"] ?? "unknown",  // Default if missing
-      diagnosisList: List<String>.from(json["top_diseases"] ?? []),  // Parse diseases
+      predictionID: json["predictionID"] ?? "unknown",
+      diagnosisList: List<String>.from(
+          json["top_diseases"] ?? json["diagnosisList"] ?? []),
       probabilityList: (json["probabilityList"] as List?)?.map((item) {
-        // Parse "83.00%" to double 83.0
-        return double.tryParse(item.replaceAll("%", "")) ?? 0.0;
-      }).toList() ?? [],  // Default to empty list if null
-      symptomsList: List<String>.from(json["symptomsList"] ?? []),  // Symptoms list
-      timestamp: DateTime.tryParse(json["timestamp"] ?? "") ?? DateTime.now(),  // Timestamp fallback
+            if (item is double) return item;
+            if (item is int) return item.toDouble();
+            return double.tryParse(
+                    item.toString().replaceAll("%", "").trim()) ??
+                0.0;
+          }).toList() ??
+          [],
+      symptomsList: List<String>.from(json["symptomsList"] ?? []),
+      timestamp: DateTime.tryParse(json["timestamp"] ?? "") ?? DateTime.now(),
+      approved: json["approved"] ?? false,
+      rejected: json["rejected"] ?? false,
     );
   }
 
-  // toJson method to convert PredictionModel to JSON
   Map<String, dynamic> toJson() {
     return {
       "predictionID": predictionID,
-      "diagnosisList": diagnosisList,
-      "probabilityList": probabilityList.map((prob) => "$prob%").toList(),  // Reformat back to percentage string
       "symptomsList": symptomsList,
-      "timestamp": timestamp.toIso8601String(),
+      "diagnosisList": diagnosisList,
+      "probabilityList": probabilityList
+          .map((prob) => prob)
+          .toList(), // ← just send raw double
+      "timestamp": timestamp.toUtc().toIso8601String(),
+      "approved": approved,
+      "rejected": rejected,
     };
   }
 }
