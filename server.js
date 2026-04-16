@@ -557,7 +557,6 @@ app.get("/appointments/:userId", async (req, res) => {
   }
 });
 
-// Add appointment endpoint
 app.post("/appointments", async (req, res) => {
   let client;
   try {
@@ -582,16 +581,13 @@ app.post("/appointments", async (req, res) => {
       insurancePolicyNumber,
       hospitalId,
       registeredHospital,
-      appointmentCost,
-      consultationCost = 0.00,
-      equipmentCost = 0.00,
       statusPayment = "Not Paid",
       statusAppointment = "Not Approved",
     } = req.body;
 
     const userId = decoded.userId;
 
-    if (!appointmentDate || !appointmentTime || !duration || !typeOfSickness || !email || appointmentCost == null) {
+    if (!appointmentDate || !appointmentTime || !duration || !typeOfSickness || !email) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -599,7 +595,6 @@ app.post("/appointments", async (req, res) => {
       client = await getConnection();
       const patients = client.db("Wellcheck2").collection("Patient");
 
-      // Flat structure — assigned_doctor at top level
       const patient = await patients.findOne({ _id: userId });
       if (!patient) {
         return res.status(404).json({ error: "Patient not found" });
@@ -632,9 +627,8 @@ app.post("/appointments", async (req, res) => {
         insuranceProvider: insuranceProvider || null,
         insurancePolicyNumber: insurancePolicyNumber || null,
         email,
-        appointmentCost,
-        consultationCost,
-        equipmentCost,
+        costItems: [],       // ✅ Clinic Assistant fills this later
+        drugCost: 0,         // ✅ Doctor fills this via prescription
         statusPayment,
         statusAppointment,
         timestamp: new Date(appointmentDate),
