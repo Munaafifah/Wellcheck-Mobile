@@ -1077,6 +1077,158 @@ app.post("/verify-password", async (req, res) => {
   }
 });
 
+// ── Get all doctors endpoint (for Flutter doctor picker) ──────────────
+app.get("/doctors", async (req, res) => {
+  let client;
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) return res.status(401).json({ error: "Invalid token" });
+
+      try {
+        client = await getConnection();
+        const schedules = client.db("Wellcheck2").collection("Doctor Schedule");
+
+        // Only return active doctors that have a schedule
+        const doctorSchedules = await schedules.find({ isActive: true }).toArray();
+
+        const doctors = doctorSchedules.map(doc => ({
+          doctorId: doc._id,
+          doctorName: doc.doctorName,
+          workingDays: doc.workingDays,
+          workingHours: doc.workingHours,
+          slotDurationMinutes: doc.slotDurationMinutes,
+        }));
+
+        res.json(doctors);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+        res.status(500).json({ error: "Internal server error" });
+      } finally {
+        if (client) await client.close();
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Get doctor availability by date ───────────────────────────────────
+// GET /doctors/:doctorId/availability?date=2026-04-20
+app.get("/doctors/:doctorId/availability", async (req, res) => {
+  let client;
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+    jwt.verify(token, secretKey, async (err, decoded) => {
+      if (err) return res.status(401).json({ error: "Invalid token" });
+
+      try {
+        const { doctorId } = req.params;
+        const { date } = req.query; // e.g. "2026-04-20"
+
+        if (!date) {
+          return res.status(400).json({ error: "date query param is required (e.g. ?date=2026-04-20)" });
+        }
+
+        client = await getConnection();
+        const schedules = client.db("Wellcheck2").collection("Doctor Schedule");
+        const appointments = client.db("Wellcheck2").collection("appointments");
+
+        // 1. Load the doctor's schedule
+        const schedule = await schedules.findOne({ _id: doctorId });
+        if (!schedule) {
+          return res.status(404).json({ error: "No schedule found for this doctor" });
+        }
+
+        if (!schedule.isActive) {
+          return res.status(400).json({ error: "Doctor is not currently active" });
+        }
+
+        // 2. Check if requested date falls on a working day
+        const requestedDate = new Date(date + "T00:00:00.000Z");
+        const dayName = requestedDate.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+
+        if (!schedule.workingDays.includes(dayName)) {
+          return res.json({
+            doctorId,
+            date,
+            dayName,
+            isWorkingDay: false,
+            slots: [],
+            message: `Doctor does not work on ${dayName}`,
+          });
+        }
+
+        // 3. Generate all time slots for that day
+        const slotDuration = schedule.slotDurationMinutes || 30;
+        const [startHour, startMin] = schedule.workingHours.start.split(":").map(Number);
+        const [endHour, endMin] = schedule.workingHours.end.split(":").map(Number);
+
+        const startTotal = startHour * 60 + startMin;
+        const endTotal = endHour * 60 + endMin;
+
+        // Parse break times
+        const breaks = (schedule.breakTimes || []).map(b => {
+          const [bsh, bsm] = b.start.split(":").map(Number);
+          const [beh, bem] = b.end.split(":").map(Number);
+          return { start: bsh * 60 + bsm, end: beh * 60 + bem };
+        });
+
+        const allSlots = [];
+        for (let t = startTotal; t < endTotal; t += slotDuration) {
+          const h = Math.floor(t / 60).toString().padStart(2, "0");
+          const m = (t % 60).toString().padStart(2, "0");
+          const timeStr = `${h}:${m}`;
+
+          // Check if slot falls within any break
+          const isDuringBreak = breaks.some(b => t >= b.start && t < b.end);
+          if (!isDuringBreak) {
+            allSlots.push(timeStr);
+          }
+        }
+
+        // 4. Find booked slots for this doctor on this date
+        // appointments store appointmentDate as "2026-04-20" string
+        const bookedAppointments = await appointments.find({
+          doctorId,
+          appointmentDate: date,
+          statusAppointment: { $in: ["Approved", "Not Approved"] }, // block pending too
+        }).toArray();
+
+        const bookedTimes = new Set(bookedAppointments.map(a => a.appointmentTime));
+
+        // 5. Build final slot list
+        const slots = allSlots.map(time => ({
+          time,
+          available: !bookedTimes.has(time),
+        }));
+
+        res.json({
+          doctorId,
+          doctorName: schedule.doctorName,
+          date,
+          dayName,
+          isWorkingDay: true,
+          slotDurationMinutes: slotDuration,
+          slots,
+        });
+
+      } catch (error) {
+        console.error("Error fetching availability:", error);
+        res.status(500).json({ error: "Internal server error" });
+      } finally {
+        if (client) await client.close();
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Logout endpoint
 app.post("/logout", (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
