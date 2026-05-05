@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../services/appointment_service.dart';
 import '../services/availability_service.dart';
 import '../services/sickness_service.dart';
 import '../services/hospital_service.dart';
 import '../models/sickness_model.dart';
 import '../models/hospital_model.dart';
-import '../models/appointment_model.dart';
+import '../config.dart';
 
 class AppointmentPage extends StatefulWidget {
   const AppointmentPage({super.key});
@@ -61,8 +63,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.red, size: 60),
+                    const Icon(Icons.error_outline, color: Colors.red, size: 60),
                     const SizedBox(height: 16),
                     Text('Error: ${snapshot.error}',
                         style: const TextStyle(color: Colors.red)),
@@ -104,8 +105,7 @@ class _AppointmentPageState extends State<AppointmentPage> {
                                 width: 60,
                                 height: 60,
                                 decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFF4CAF93).withOpacity(0.1),
+                                  color: const Color(0xFF4CAF93).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(Icons.local_hospital,
@@ -166,23 +166,21 @@ class AppointmentFormScreen extends StatefulWidget {
 class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _additionalNotesController =
-      TextEditingController();
-  final TextEditingController _insuranceProviderController =
-      TextEditingController();
-  final TextEditingController _insurancePolicyNumberController =
-      TextEditingController();
-  final TextEditingController _sicknessSearchController =
-      TextEditingController();
+  final TextEditingController _additionalNotesController = TextEditingController();
+  final TextEditingController _insuranceProviderController = TextEditingController();
+  final TextEditingController _insurancePolicyNumberController = TextEditingController();
+  final TextEditingController _sicknessSearchController = TextEditingController();
 
   final AppointmentService _appointmentService = AppointmentService();
   final AvailabilityService _availabilityService = AvailabilityService();
   final SicknessService _sicknessService = SicknessService();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // Doctor picker
-  List<Map<String, dynamic>> _doctors = [];
-  Map<String, dynamic>? _selectedDoctor;
+  // ── Assigned doctor (auto-loaded, no picker) ──
+  String _assignedDoctorId = '';
+  String _assignedDoctorName = 'Loading...';
+  bool _loadingDoctor = true;
+  bool _doctorError = false;
 
   // Date & slots
   DateTime? _selectedDate;
@@ -207,25 +205,89 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDoctors();
+    _loadAssignedDoctor();
     _loadSicknesses();
     _sicknessSearchController.addListener(_filterSicknesses);
   }
 
   @override
   void dispose() {
+    _emailController.dispose();
+    _additionalNotesController.dispose();
+    _insuranceProviderController.dispose();
+    _insurancePolicyNumberController.dispose();
     _sicknessSearchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadDoctors() async {
+  // ── Load assigned doctor from patient profile ─────────────────────
+  Future<void> _loadAssignedDoctor() async {
     try {
       final token = await _storage.read(key: "auth_token");
-      if (token == null) return;
-      final doctors = await _availabilityService.fetchDoctors(token);
-      setState(() => _doctors = doctors);
+      if (token == null) {
+        setState(() {
+          _assignedDoctorName = 'Not assigned';
+          _loadingDoctor = false;
+          _doctorError = true;
+        });
+        return;
+      }
+
+      // Decode token to get userId
+      final parts = token.split('.');
+      if (parts.length != 3) throw Exception('Invalid token');
+      final payload = jsonDecode(
+          utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+      final userId = payload['userId'];
+
+      // Fetch patient profile from Node.js
+      final response = await http.get(
+        Uri.parse('${Config.baseUrl}/patient/$userId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final doctorId = data['assigned_doctor'];
+
+        if (doctorId == null || doctorId.toString().isEmpty) {
+          setState(() {
+            _assignedDoctorName = 'No doctor assigned yet';
+            _assignedDoctorId = '';
+            _loadingDoctor = false;
+            _doctorError = true;
+          });
+          return;
+        }
+
+        // Now fetch doctor name from availability/schedule
+        final doctorResponse = await http.get(
+          Uri.parse('${Config.baseUrl}/doctor-schedule/$doctorId'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        String doctorName = doctorId; // fallback to ID if name fetch fails
+        if (doctorResponse.statusCode == 200) {
+          final doctorData = jsonDecode(doctorResponse.body);
+          doctorName = doctorData['doctorName'] ?? doctorId;
+        }
+
+        setState(() {
+          _assignedDoctorId = doctorId;
+          _assignedDoctorName = doctorName;
+          _loadingDoctor = false;
+          _doctorError = false;
+        });
+      } else {
+        throw Exception('Failed to load patient profile');
+      }
     } catch (e) {
-      debugPrint("Error loading doctors: $e");
+      debugPrint('Error loading assigned doctor: $e');
+      setState(() {
+        _assignedDoctorName = 'Failed to load doctor';
+        _loadingDoctor = false;
+        _doctorError = true;
+      });
     }
   }
 
@@ -263,12 +325,16 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   }
 
   void _removeSickness(String name) {
-    setState(() {
-      _selectedSicknessTypes.remove(name);
-    });
+    setState(() => _selectedSicknessTypes.remove(name));
   }
 
   Future<void> _pickDate() async {
+    if (_assignedDoctorId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No doctor assigned. Please contact admin.')),
+      );
+      return;
+    }
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -294,12 +360,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   }
 
   Future<void> _loadSlots(DateTime date) async {
-    if (_selectedDoctor == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a doctor first')),
-      );
-      return;
-    }
+    if (_assignedDoctorId.isEmpty) return;
     setState(() => _loadingSlots = true);
     try {
       final token = await _storage.read(key: "auth_token");
@@ -307,7 +368,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
       final dateStr = DateFormat('yyyy-MM-dd').format(date);
       final result = await _availabilityService.fetchAvailability(
         token,
-        _selectedDoctor!['doctorId'],
+        _assignedDoctorId,   // ✅ use assigned doctor directly
         dateStr,
       );
       setState(() {
@@ -327,9 +388,9 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
   Future<void> _submitAppointment() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDoctor == null) {
+    if (_assignedDoctorId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a doctor')));
+          const SnackBar(content: Text('No doctor assigned to your account.')));
       return;
     }
     if (_selectedDate == null) {
@@ -400,8 +461,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
         backgroundColor: const Color(0xFF4CAF93),
         title: Text(
           'Book at ${widget.hospital.name}',
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -420,8 +480,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
           padding: const EdgeInsets.all(16),
           child: Card(
             elevation: 8,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Form(
@@ -439,30 +498,88 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // ── Doctor Picker ──────────────────────────
-                    _sectionLabel("Select Doctor"),
+                    // ── Assigned Doctor Card (replaces dropdown) ───────
+                    _sectionLabel("Your Assigned Doctor"),
                     const SizedBox(height: 8),
-                    DropdownButtonFormField<Map<String, dynamic>>(
-                      value: _selectedDoctor,
-                      decoration:
-                          _inputDecoration("Choose a doctor", Icons.person),
-                      hint: const Text("Choose a doctor"),
-                      items: _doctors.map((doc) {
-                        return DropdownMenuItem(
-                          value: doc,
-                          child: Text(doc['doctorName'] ?? doc['doctorId']),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedDoctor = val;
-                          _selectedDate = null;
-                          _selectedTimeSlot = null;
-                          _slots = [];
-                        });
-                      },
-                      validator: (val) =>
-                          val == null ? 'Please select a doctor' : null,
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _doctorError
+                            ? Colors.orange.shade50
+                            : const Color(0xFF4CAF93).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _doctorError
+                              ? Colors.orange.shade200
+                              : const Color(0xFF4CAF93).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: _doctorError
+                                  ? Colors.orange.shade100
+                                  : const Color(0xFF4CAF93).withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _doctorError ? Icons.warning_amber : Icons.person,
+                              color: _doctorError
+                                  ? Colors.orange
+                                  : const Color(0xFF4CAF93),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _loadingDoctor
+                                ? Row(
+                                    children: [
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF4CAF93),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      const Text('Loading doctor info...',
+                                          style: TextStyle(color: Colors.grey)),
+                                    ],
+                                  )
+                                : Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _assignedDoctorName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: _doctorError
+                                              ? Colors.orange.shade800
+                                              : const Color(0xFF1a2e2b),
+                                        ),
+                                      ),
+                                      if (!_doctorError) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'ID: $_assignedDoctorId',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                          ),
+                          if (!_doctorError && !_loadingDoctor)
+                            const Icon(Icons.verified,
+                                color: Color(0xFF4CAF93), size: 18),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 20),
 
@@ -548,8 +665,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
                             return GestureDetector(
                               onTap: available
-                                  ? () =>
-                                      setState(() => _selectedTimeSlot = time)
+                                  ? () => setState(() => _selectedTimeSlot = time)
                                   : null,
                               child: Container(
                                 alignment: Alignment.center,
@@ -611,7 +727,6 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                           : null,
                     ),
 
-                    // Scrollable dropdown list
                     if (_showSicknessList && _filteredSicknesses.isNotEmpty)
                       Container(
                         constraints: const BoxConstraints(maxHeight: 200),
@@ -652,7 +767,6 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Selected sickness list
                     if (_selectedSicknessTypes.isNotEmpty) ...[
                       const Text(
                         'Selected:',
@@ -672,8 +786,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                             trailing: IconButton(
                               icon: const Icon(Icons.remove_circle,
                                   color: Colors.red, size: 20),
-                              onPressed: () => _removeSickness(
-                                  _selectedSicknessTypes[index]),
+                              onPressed: () =>
+                                  _removeSickness(_selectedSicknessTypes[index]),
                             ),
                           );
                         },
@@ -690,8 +804,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                           _inputDecoration("Select duration", Icons.timer),
                       hint: const Text("Select duration"),
                       items: _durations
-                          .map(
-                              (d) => DropdownMenuItem(value: d, child: Text(d)))
+                          .map((d) =>
+                              DropdownMenuItem(value: d, child: Text(d)))
                           .toList(),
                       onChanged: (val) =>
                           setState(() => _selectedDuration = val),
@@ -765,7 +879,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                             : const Text(
                                 'Book Appointment',
                                 style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold),
                               ),
                       ),
                     ),
@@ -810,7 +925,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                 color: color, borderRadius: BorderRadius.circular(3)),
           ),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       );
 }
