@@ -835,6 +835,7 @@ app.get("/api/billing/:userId", async (req, res) => {
 });
 
 // Mark all appointments as paid
+// Mark appointment as paid
 app.post("/api/billing/pay", async (req, res) => {
   let client;
   try {
@@ -845,16 +846,16 @@ app.post("/api/billing/pay", async (req, res) => {
       if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
-        const { userId } = req.body;
+        const { userId, billingId } = req.body;
         client = await getConnection();
         const appointments = client.db("Wellcheck2").collection("appointments");
 
-        await appointments.updateMany(
-          { userId, statusPayment: "Not Paid" },
-          { $set: { statusPayment: "Paid", statusAppointment: "Paid" } }
+        await appointments.updateOne(
+          { appointmentId: billingId, userId, statusPayment: "Not Paid" },
+          { $set: { statusPayment: "Paid" } }
         );
 
-        res.json({ message: "All appointments marked as paid" });
+        res.json({ message: "Appointment marked as paid" });
       } catch (error) {
         console.error("Pay billing error:", error);
         res.status(500).json({ error: "Internal server error" });

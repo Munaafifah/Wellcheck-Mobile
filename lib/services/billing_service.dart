@@ -39,21 +39,21 @@ class BillingService {
   }
 
   // Mark billing as paid
-  Future<void> payBilling(String userId) async {
-    final token = await _storage.read(key: "auth_token");
-    if (token == null) throw Exception("Authentication token not found");
+  Future<void> payBilling(String userId, String billingId) async {
+  final token = await _storage.read(key: "auth_token");
+  if (token == null) throw Exception("Authentication token not found");
 
-    final response = await http.post(
-      Uri.parse("$baseUrl/api/billing/pay"),
-      headers: {
-        "Authorization": "Bearer $token",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({"userId": userId}),
-    );
+  final response = await http.post(
+    Uri.parse("$baseUrl/api/billing/pay"),
+    headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json",
+    },
+    body: jsonEncode({"userId": userId, "billingId": billingId}),
+  );
 
-    if (response.statusCode != 200) {
-      throw Exception("Failed to process payment: ${response.body}");
-    }
+  if (response.statusCode != 200) {
+    throw Exception("Failed to process payment: ${response.body}");
   }
+}
 }

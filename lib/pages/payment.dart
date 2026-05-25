@@ -56,7 +56,7 @@ class _PaymentPageState extends State<Payment> {
         amount: billing.totalCost,
         method: _selectedMethods[billing.billingId]!,
       );
-      await _billingService.payBilling(widget.userId);
+      await _billingService.payBilling(widget.userId, billing.billingId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
