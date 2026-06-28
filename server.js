@@ -1,3 +1,4 @@
+require('dns').setServers(['8.8.8.8', '1.1.1.1']);
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -224,15 +225,21 @@ app.get("/healthstatus/:userId", async (req, res) => {
         const userId = req.params.userId;
         client = await getConnection();
 
-        // HealthStatus is a separate collection in the new DB
-        const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
-        const healthStatusList = await healthStatusCollection.find({ userId }).toArray();
+        const patientsCollection = client.db("Wellcheck2").collection("Patient");
+        const patient = await patientsCollection.findOne({ _id: userId }); 
 
-        if (!healthStatusList || healthStatusList.length === 0) {
-          return res.status(404).json({ error: "No healthstatus found for this patient" });
+        if (!patient || !patient.prediction) {
+          return res.status(404).json({ error: "No prediction data found for this patient" });
         }
 
-        res.json(healthStatusList);
+        const predictionArray = Object.entries(patient.prediction).map(([key, value]) => ({
+          healthstatusID: key,
+          ...value
+        }));
+
+        predictionArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        res.json(predictionArray);
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
@@ -246,8 +253,58 @@ app.get("/healthstatus/:userId", async (req, res) => {
   }
 });
 
-// Add health status endpoint (called from mobile after prediction)
-app.post("/add-healthstatus", async (req, res) => {
+// // Add health status endpoint (called from mobile after prediction)
+// app.post("/add-healthstatus", async (req, res) => {
+//   let client;
+//   try {
+//     const token = req.headers.authorization?.split(" ")[1];
+//     if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+//     jwt.verify(token, secretKey, async (err, decoded) => {
+//       if (err) return res.status(401).json({ error: "Invalid token" });
+
+//       try {
+//         const userId = decoded.userId;
+//         const { additionalNotes, diagnosisList } = req.body; // ← add diagnosisList
+
+//         client = await getConnection();
+//         const patients = client.db("Wellcheck2").collection("Patient");
+//         const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
+
+//         const patient = await patients.findOne({ _id: userId });
+//         if (!patient) return res.status(404).json({ error: "Patient not found" });
+
+//         const doctorId = patient.assigned_doctor || "";
+
+//         const newHealthStatus = {
+//           healthStatusId: uuidv4(), // ← use existing uuidv4, not require()
+//           userId,
+//           doctorId,
+//           additionalNotes: additionalNotes || "",
+//           diagnosisList: diagnosisList || [], // ← add this
+//           timestamp: new Date(),
+//         };
+
+//         await healthStatusCollection.insertOne(newHealthStatus);
+
+//         res.status(200).json({
+//           message: "Health status saved successfully",
+//           healthStatus: newHealthStatus,
+//         });
+//       } catch (error) {
+//         console.error("Error saving health status:", error);
+//         res.status(500).json({ error: "Internal server error" });
+//       } finally {
+//         if (client) await client.close();
+//       }
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
   let client;
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -257,35 +314,23 @@ app.post("/add-healthstatus", async (req, res) => {
       if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
-        const userId = decoded.userId;
-        const { additionalNotes, diagnosisList } = req.body; // ← add diagnosisList
-
+        const { userId, healthStatusId } = req.params;
         client = await getConnection();
-        const patients = client.db("Wellcheck2").collection("Patient");
-        const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
 
-        const patient = await patients.findOne({ _id: userId });
-        if (!patient) return res.status(404).json({ error: "Patient not found" });
+        const patientsCollection = client.db("Wellcheck2").collection("Patient");
 
-        const doctorId = patient.assigned_doctor || "";
+        const result = await patientsCollection.updateOne(
+          { _id: userId },
+          { $unset: { [`prediction.${healthStatusId}`]: "" } }
+        );
 
-        const newHealthStatus = {
-          healthStatusId: uuidv4(), // ← use existing uuidv4, not require()
-          userId,
-          doctorId,
-          additionalNotes: additionalNotes || "",
-          diagnosisList: diagnosisList || [], // ← add this
-          timestamp: new Date(),
-        };
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ error: "Record not found or already deleted" });
+        }
 
-        await healthStatusCollection.insertOne(newHealthStatus);
-
-        res.status(200).json({
-          message: "Health status saved successfully",
-          healthStatus: newHealthStatus,
-        });
+        res.json({ message: "Health record deleted successfully" });
       } catch (error) {
-        console.error("Error saving health status:", error);
+        console.error(error);
         res.status(500).json({ error: "Internal server error" });
       } finally {
         if (client) await client.close();
