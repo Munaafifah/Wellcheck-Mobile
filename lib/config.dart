@@ -1,5 +1,5 @@
 class Config {
-  static const String baseUrl = 'http://10.0.2.2:5001';
+  static const String baseUrl = 'https://wellcheck-mobile-iu264.ondigitalocean.app';
 }
 
 /*before windows emulator

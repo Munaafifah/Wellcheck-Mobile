@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AvailabilityService {
-  final String baseUrl = "http://10.0.2.2:5001";
+  final String baseUrl = "https://wellcheck-mobile-iu264.ondigitalocean.app";
 
   // Fetch all active doctors that have a schedule
   Future<List<Map<String, dynamic>>> fetchDoctors(String token) async {
