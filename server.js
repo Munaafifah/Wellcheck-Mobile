@@ -13,7 +13,7 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
 
-const port = 5001;
+const port = process.env.PORT || 5001;
 
 const uri = "mongodb+srv://admin:admin@atlascluster.htlbqbu.mongodb.net/Wellcheck2?retryWrites=true&w=majority";
 const secretKey = "your_secret_key";
