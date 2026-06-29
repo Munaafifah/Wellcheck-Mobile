@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:session/config.dart';
 import 'pages/login_page.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 void main() async {
+  print('🔑 BASE URL AT STARTUP: ${Config.baseUrl}');
+
   WidgetsFlutterBinding.ensureInitialized();
   Stripe.publishableKey =
       "pk_test_51QbOp1JKCpq3JAicYBO3uuWYof1Myc66izFkrLOKRV6HZfgrLZgnSSwUPYRCqiOoLQUD0Zh4iMLoI53lJEHnZ1Ms00jPL7Jn9o";
   await Stripe.instance.applySettings();
   try {
     await Stripe.instance.applySettings();
-    print('Stripe initialized successfully');
+    print('Stripe initialized successfuly');
   } catch (e) {
     print('Stripe initialization failed: $e');
   }

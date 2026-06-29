@@ -4,9 +4,11 @@ import '../models/prediction_model.dart';
 
 class PredictionService {
   final String djangoApiUrl =
-      "https://ai-disease-prediction-jqf3d.ondigitalocean.app/form/";
-  final String nodeApiUrl = "https://wellcheck-mobile-iu264.ondigitalocean.app/predictions2";
-final String healthStatusUrl = "https://wellcheck-mobile-iu264.ondigitalocean.app/add-healthstatus";
+      "https://ai-disease-prediction-jqf3d.ondigitalocean.app/status/";
+  final String nodeApiUrl =
+      "https://wellcheck-mobile-iu264.ondigitalocean.app/predictions2";
+  final String healthStatusUrl =
+      "https://wellcheck-mobile-iu264.ondigitalocean.app/add-healthstatus";
 
   static const Map<String, int> symptomWeightMapping = {
     "itching": 1,
