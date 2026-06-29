@@ -50,7 +50,7 @@ class PredictionService {
         return null;
       }
     } catch (e) {
-      print("Error during API call: $e");
+      print("Errors during API call: $e");
       throw Exception("Failed to connect to API: $e");
     }
   }
