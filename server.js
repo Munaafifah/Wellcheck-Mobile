@@ -225,21 +225,26 @@ app.get("/healthstatus/:userId", async (req, res) => {
         const userId = req.params.userId;
         client = await getConnection();
 
-        const patientsCollection = client.db("Wellcheck2").collection("Patient");
-        const patient = await patientsCollection.findOne({ _id: userId }); 
+        const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
+        const records = await healthStatusCollection
+          .find({ userId })
+          .sort({ timestamp: -1 })
+          .toArray();
 
-        if (!patient || !patient.prediction) {
-          return res.status(404).json({ error: "No prediction data found for this patient" });
+        if (!records.length) {
+          return res.status(404).json({ error: "No health status data found for this patient" });
         }
 
-        const predictionArray = Object.entries(patient.prediction).map(([key, value]) => ({
-          healthstatusID: key,
-          ...value
+        // Map to match what Flutter model expects
+        const result = records.map(r => ({
+          healthStatusId: r.healthStatusId,
+          doctorId: r.doctorId,
+          additionalNotes: r.additionalNotes,
+          diagnosisList: r.diagnosisList || [],
+          timestamp: r.timestamp,
         }));
 
-        predictionArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-        res.json(predictionArray);
+        res.json(result);
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Internal server error" });
@@ -314,17 +319,13 @@ app.delete("/healthstatus/:userId/:healthStatusId", async (req, res) => {
       if (err) return res.status(401).json({ error: "Invalid token" });
 
       try {
-        const { userId, healthStatusId } = req.params;
+        const { healthStatusId } = req.params;
         client = await getConnection();
 
-        const patientsCollection = client.db("Wellcheck2").collection("Patient");
+        const healthStatusCollection = client.db("Wellcheck2").collection("HealthStatus");
+        const result = await healthStatusCollection.deleteOne({ healthStatusId });
 
-        const result = await patientsCollection.updateOne(
-          { _id: userId },
-          { $unset: { [`prediction.${healthStatusId}`]: "" } }
-        );
-
-        if (result.modifiedCount === 0) {
+        if (result.deletedCount === 0) {
           return res.status(404).json({ error: "Record not found or already deleted" });
         }
 
